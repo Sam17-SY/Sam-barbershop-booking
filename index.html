@@ -1,0 +1,889 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}</style>
+<title>理发预约</title>
+<style>/* ========== 设计变量：参照 iOS 系统配色，自动适配深色模式 ========== */
+body {
+  --bg: #f2f2f7;
+  --card: #ffffff;
+  --label: #1c1c1e;
+  --secondary: #8e8e93;
+  --tertiary: #c7c7cc;
+  --separator: rgba(60, 60, 67, 0.12);
+  --fill: rgba(120, 120, 128, 0.12);
+  --seg-on: #ffffff;
+  --primary: #1c1c1e;
+  --on-primary: #ffffff;
+  --link: #007aff;
+  --danger: #ff3b30;
+  --success: #34c759;
+  --nav-bg: rgba(242, 242, 247, 0.78);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+
+  /* Apple 常用的缓动曲线 */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  background: var(--bg);
+  color: var(--label);
+  font-family: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body {
+    --bg: #000000;
+    --card: #1c1c1e;
+    --label: #ffffff;
+    --secondary: #8e8e93;
+    --tertiary: #48484a;
+    --separator: rgba(84, 84, 88, 0.6);
+    --fill: rgba(120, 120, 128, 0.24);
+    --seg-on: #636366;
+    --primary: #f5f5f7;
+    --on-primary: #000000;
+    --link: #0a84ff;
+    --danger: #ff453a;
+    --success: #30d158;
+    --nav-bg: rgba(0, 0, 0, 0.72);
+    --shadow: none;
+  } }
+:root[data-theme="dark"] body {
+    --bg: #000000;
+    --card: #1c1c1e;
+    --label: #ffffff;
+    --secondary: #8e8e93;
+    --tertiary: #48484a;
+    --separator: rgba(84, 84, 88, 0.6);
+    --fill: rgba(120, 120, 128, 0.24);
+    --seg-on: #636366;
+    --primary: #f5f5f7;
+    --on-primary: #000000;
+    --link: #0a84ff;
+    --danger: #ff453a;
+    --success: #30d158;
+    --nav-bg: rgba(0, 0, 0, 0.72);
+    --shadow: none;
+  }
+
+/* ========== 通用组件 ========== */
+
+/* 分组列表（iOS 设置页那种圆角白卡片） */
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 24px 24px 7px;
+  font-size: 13px;
+  color: var(--secondary);
+  letter-spacing: 0.25px;
+}
+.group {
+  margin: 0 16px;
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.row {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 10px 16px;
+  transition: background-color 200ms var(--ease-out);
+}
+.row + .row { border-top: 0.5px solid var(--separator); }
+.row-pressed { background: var(--fill); }
+
+/* 主按钮：按下时轻微缩小，像 iOS 一样有“按下去”的手感 */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  padding: 0 24px;
+  border-radius: 499.5px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 16px;
+  font-weight: 600;
+  transition: transform 250ms var(--ease-out), opacity 250ms var(--ease-out);
+}
+.btn-pressed { transform: scale(0.96); opacity: 0.85; }
+.btn-text {
+  text-align: center;
+  padding: 14px 0 4px;
+  color: var(--link);
+  font-size: 15px;
+}
+
+/* ========== 分段控件 ========== */
+.segmented {
+  position: relative;
+  display: flex;
+  margin: 0 16px;
+  padding: 2px;
+  border-radius: 11px;
+  background: var(--fill);
+}
+.seg-indicator {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  border-radius: 9px;
+  background: var(--seg-on);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1), 0 1px 1px rgba(0, 0, 0, 0.04);
+  /* 弹簧曲线：滑过去时有一点点回弹 */
+  transition: transform 450ms var(--ease-spring);
+}
+.seg-item {
+  position: relative;
+  flex: 1;
+  padding: 8px 0;
+  text-align: center;
+  transition: transform 200ms var(--ease-out);
+}
+.seg-pressed { transform: scale(0.96); }
+.seg-label { font-size: 15px; font-weight: 500; }
+.seg-sub { margin-top: 1px; font-size: 11px; color: var(--secondary); }
+.seg-on .seg-label { font-weight: 600; }
+.seg-label-single { padding: 3px 0; }
+
+/* 进场动画：淡入 + 上移，配合 animation-delay 做逐个出现 */
+.fade-up {
+  animation: fadeUp 600ms var(--ease-out) backwards;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 骨架屏闪光 */
+.skeleton {
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--fill) 0%, var(--card) 50%, var(--fill) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+/* 加载转圈 */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 700ms linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ========== 导航栏 ========== */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  box-sizing: content-box;
+  border-bottom: 0.5px solid transparent;
+  transition: background-color 300ms var(--ease-out), border-color 300ms var(--ease-out);
+}
+.nav-collapsed {
+  background: var(--nav-bg);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom-color: var(--separator);
+}
+.nav-title {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  font-size: 17px;
+  font-weight: 600;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 250ms var(--ease-out), transform 300ms var(--ease-out);
+}
+.nav-collapsed .nav-title { opacity: 1; transform: translateY(0); }
+
+/* ========== 大标题 ========== */
+.page { padding-bottom: 130px; }
+.hero { padding: 6px 20px 4px; }
+.large-title {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+}
+.subtitle {
+  margin-top: 4px;
+  font-size: 15px;
+  color: var(--secondary);
+}
+
+/* ========== 骨架屏 ========== */
+.sk-card { height: 180px; margin: 16px; }
+.sk-row { height: 60px; margin: 16px; }
+.sk-grid { height: 140px; margin: 16px; }
+
+/* ========== 我的预约卡券 ========== */
+.ticket {
+  margin: 16px 16px 0;
+  padding: 18px 20px 14px;
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(145deg, #3a3a3c 0%, #1c1c1e 60%, #0b0b0c 100%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+.ticket-top { display: flex; align-items: center; justify-content: space-between; }
+.badge {
+  padding: 3px 9px;
+  border-radius: 499.5px;
+  background: rgba(52, 199, 89, 0.2);
+  color: #4ade80;
+  font-size: 11px;
+  font-weight: 600;
+}
+.ticket-date { font-size: 13px; color: rgba(255, 255, 255, 0.6); }
+.ticket-time {
+  margin-top: 12px;
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.ticket-end { font-size: 20px; font-weight: 500; color: rgba(255, 255, 255, 0.5); letter-spacing: 0; }
+.ticket-name { margin-top: 6px; font-size: 14px; color: rgba(255, 255, 255, 0.7); }
+.ticket-divider {
+  margin: 14px -20px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.14);
+}
+.ticket-addr { font-size: 14px; }
+.ticket-door { margin-top: 2px; font-size: 14px; color: rgba(255, 255, 255, 0.6); }
+.ticket-actions { display: flex; gap: 8px; margin-top: 14px; }
+.ticket-btn {
+  flex: 1;
+  text-align: center;
+  padding: 9px 0;
+  border-radius: 499.5px;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+  font-weight: 500;
+  transition: transform 200ms var(--ease-out), background-color 200ms var(--ease-out);
+}
+.ticket-btn-danger { color: #ff6961; }
+.ticket-btn-pressed { transform: scale(0.96); background: rgba(255, 255, 255, 0.2); }
+
+/* ========== 地址行 ========== */
+.icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  margin-right: 12px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-red { background: var(--danger); }
+.icon-wechat { background: #07c160; }
+.icon-green { background: var(--success); }
+/* 下面三个图标都是用 CSS 画的，不需要图片 */
+.pin-dot {
+  width: 11px;
+  height: 11px;
+  border: 2.5px solid #fff;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+.bubble {
+  position: relative;
+  width: 15px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+}
+.bubble::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  bottom: -2px;
+  border: 2.5px solid transparent;
+  border-top-color: #fff;
+  border-left-color: #fff;
+}
+/* 电话听筒：两端圆头 + 中间弧形 */
+.handset {
+  position: relative;
+  width: 13px;
+  height: 13px;
+  border: 3px solid #fff;
+  border-top-color: transparent;
+  border-right-color: transparent;
+  border-radius: 50%;
+  transform: rotate(0deg) translate(1px, -1px);
+}
+.handset::before,
+.handset::after {
+  content: '';
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 1.5px;
+  background: #fff;
+}
+.handset::before { left: -2px; top: -1px; }
+.handset::after { right: -1px; bottom: -2px; }
+.row-main { flex: 1; min-width: 0; }
+.row-title { font-size: 15px; line-height: 1.35; }
+.row-sub { margin-top: 2px; font-size: 13px; color: var(--secondary); }
+.row-accessory { margin-left: 8px; font-size: 14px; color: var(--link); }
+
+/* ========== 输入框 ========== */
+.field { flex: 1; height: 28px; font-size: 16px; color: var(--label); }
+.placeholder { color: var(--tertiary); }
+
+
+/* 选 Zelle 时展开收款账号：用 max-height + 透明度做展开收起 */
+.zelle {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateY(-6px);
+  transition: max-height 450ms var(--ease-sheet), opacity 300ms var(--ease-out), transform 450ms var(--ease-sheet);
+}
+.zelle-show { max-height: 100px; opacity: 1; transform: none; }
+.zelle-inner { margin-top: 8px; }
+
+/* ========== 时间格子 ========== */
+.section-note { font-size: 12px; color: var(--tertiary); }
+.slots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 0 16px;
+}
+.slot {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--card);
+  font-size: 16px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  transition:
+    transform 350ms var(--ease-spring),
+    background-color 250ms var(--ease-out),
+    color 250ms var(--ease-out);
+}
+/* backwards：只在动画开始前生效，结束后不锁住 transform，按下/选中的缩放才能生效 */
+.slot-in { animation: slotIn 500ms var(--ease-out) backwards; }
+@keyframes slotIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+.slot-pressed { transform: scale(0.94); }
+.slot-on {
+  background: var(--primary);
+  color: var(--on-primary);
+  transform: scale(1.04);
+}
+.slot-taken {
+  background: transparent;
+  color: var(--tertiary);
+  text-decoration: line-through;
+}
+
+.empty {
+  margin: 0 16px;
+  padding: 28px 0;
+  border-radius: 12px;
+  background: var(--card);
+  text-align: center;
+}
+.empty-title { font-size: 16px; font-weight: 600; }
+.empty-sub { margin-top: 4px; font-size: 13px; color: var(--secondary); }
+
+.footer {
+  margin-top: 32px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--tertiary);
+}
+
+/* ========== 底部操作栏 ========== */
+.cta {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  padding: 8px 8px 8px 18px;
+  border-radius: 499.5px;
+  background: var(--nav-bg);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border: 0.5px solid var(--separator);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  transform: translateY(200%);
+  opacity: 0;
+  transition: transform 550ms var(--ease-spring), opacity 300ms var(--ease-out);
+}
+.cta-show { transform: translateY(0); opacity: 1; }
+.cta-info { flex: 1; }
+.cta-label { font-size: 11px; color: var(--secondary); }
+.cta-value { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cta .btn-primary { height: 44px; }
+
+/* ========== 底部弹层 ========== */
+.sheet-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 100; }
+.mask {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 400ms var(--ease-out);
+}
+.sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px 20px calc(16px + env(safe-area-inset-bottom));
+  border-radius: 20px 20px 0 0;
+  background: var(--card);
+  transform: translateY(100%);
+  /* iOS 系统 Sheet 用的就是这条曲线：起步快、收尾很柔 */
+  transition: transform 500ms var(--ease-sheet);
+}
+.sheet-open .mask { opacity: 1; }
+.sheet-open .sheet { transform: translateY(0); }
+.grabber {
+  width: 36px;
+  height: 5px;
+  margin: 0 auto 14px;
+  border-radius: 499.5px;
+  background: var(--tertiary);
+}
+.sheet-title { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+.summary {
+  border-radius: 12px;
+  background: var(--bg);
+  padding: 0 14px;
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  font-size: 15px;
+}
+.summary-row + .summary-row { border-top: 0.5px solid var(--separator); }
+.summary-k { color: var(--secondary); flex-shrink: 0; margin-right: 16px; }
+.summary-v { text-align: right; font-weight: 500; }
+.sheet-btn { margin-top: 20px; }
+
+/* 成功：圆圈弹出 + 对勾画出 */
+.success { padding: 12px 0 4px; text-align: center; }
+.check-circle {
+  width: 64px;
+  height: 64px;
+  margin: 4px auto 14px;
+  border-radius: 50%;
+  background: var(--success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pop 600ms var(--ease-spring) both;
+}
+.check {
+  width: 13px;
+  height: 26px;
+  margin-top: -5px;
+  border-right: 4.5px solid #fff;
+  border-bottom: 4.5px solid #fff;
+  border-radius: 1px;
+  transform: rotate(45deg);
+  animation: draw 400ms var(--ease-out) 250ms both;
+}
+@keyframes pop {
+  from { transform: scale(0.3); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes draw {
+  from { opacity: 0; transform: rotate(45deg) scale(0.4); }
+  to { opacity: 1; transform: rotate(45deg) scale(1); }
+}
+.success-title { font-size: 22px; font-weight: 700; animation: fadeUp 500ms var(--ease-out) 200ms both; }
+.success-time {
+  margin: 6px 0 10px;
+  font-size: 16px;
+  font-weight: 500;
+  animation: fadeUp 500ms var(--ease-out) 280ms both;
+}
+.success-addr { margin-top: 2px; font-size: 14px; color: var(--secondary); animation: fadeUp 500ms var(--ease-out) 340ms both; }
+
+
+body { margin: 0; } * { box-sizing: border-box; } input { border: 0; background: none; outline: none; font: inherit; }
+.nav, .cta { box-sizing: content-box; }
+.toast { position: fixed; left: 50%; top: 45%; z-index: 200; padding: 12px 20px; border-radius: 12px; background: rgba(0,0,0,.75); color: #fff; font-size: 15px;
+  transform: translate(-50%, -50%) scale(.9); opacity: 0; pointer-events: none; transition: opacity 200ms, transform 300ms cubic-bezier(0.34,1.56,0.64,1); }
+.toast-show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.alert-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0); transition: background 250ms; }
+.alert-open { background: rgba(0,0,0,.35); }
+.alert { width: 270px; border-radius: 14px; overflow: hidden; text-align: center;
+  background: rgba(242,242,247,.92); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+  transform: scale(1.15); opacity: 0; transition: transform 300ms cubic-bezier(0.2,0.8,0.2,1), opacity 200ms; }
+.alert-open .alert { transform: scale(1); opacity: 1; }
+.alert-body { padding: 20px 16px 18px; }
+.alert-title { font-size: 17px; font-weight: 600; }
+.alert-content { margin-top: 4px; font-size: 13px; line-height: 1.4; }
+.alert-actions { display: flex; border-top: .5px solid rgba(60,60,67,.29); }
+.alert-btn { flex: 1; padding: 11px 0; font-size: 17px; color: #007aff; cursor: pointer; }
+.alert-btn + .alert-btn { border-left: .5px solid rgba(60,60,67,.29); }
+.alert-btn:active { background: rgba(0,0,0,.06); }
+.alert-danger { color: #ff3b30; font-weight: 600; }
+/* 模拟微信原生滚轮选择器（picker） */
+.wheel-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300; }
+.wheel-mask { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0); transition: background 300ms; }
+.wheel-open .wheel-mask { background: rgba(0,0,0,.4); }
+.wheel-sheet { position: absolute; left: 0; right: 0; bottom: 0; padding-bottom: 24px; border-radius: 14px 14px 0 0; background: var(--card);
+  transform: translateY(100%); transition: transform 450ms cubic-bezier(0.32,0.72,0,1); }
+.wheel-open .wheel-sheet { transform: none; }
+.wheel-bar { display: flex; justify-content: space-between; align-items: center; height: 52px; padding: 0 20px; border-bottom: .5px solid var(--separator); font-size: 17px; }
+.wheel-title { font-weight: 600; }
+.wheel-cancel { color: var(--secondary); cursor: pointer; }
+.wheel-ok { color: var(--link); font-weight: 600; cursor: pointer; }
+.wheel-cols { position: relative; display: flex; justify-content: center; gap: 8px; padding: 0 24px; }
+.wheel-band { position: absolute; left: 16px; right: 16px; top: 50%; height: 40px; margin-top: -20px; border-radius: 10px; background: var(--fill); pointer-events: none; }
+.wheel-col { position: relative; flex: 1; max-width: 160px; height: 220px; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent); mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent); }
+.wheel-col::-webkit-scrollbar { display: none; }
+.wheel-pad { height: 90px; }
+.wheel-item { height: 40px; line-height: 40px; text-align: center; font-size: 21px; scroll-snap-align: center; color: var(--label);
+  font-variant-numeric: tabular-nums; cursor: pointer; transition: opacity 150ms; opacity: .35; }
+.wheel-item.on { opacity: 1; font-weight: 500; }
+.wheel-sep { align-self: center; font-size: 21px; font-weight: 600; z-index: 1; }
+/* 模拟微信原生导航栏（店主页用） */
+.native-nav { position: sticky; top: 0; z-index: 50; height: 44px; padding-top: 47px; box-sizing: content-box; display: flex; align-items: center; justify-content: center;
+  background: var(--bg); font-size: 17px; font-weight: 600; }
+.native-back { position: absolute; left: 12px; bottom: 0; height: 44px; display: flex; align-items: center; color: var(--label); text-decoration: none; font-size: 28px; font-weight: 300; }
+@media (prefers-color-scheme: dark) {
+  .alert { background: rgba(44,44,46,.92); color: #fff; }
+  .alert-actions, .alert-btn + .alert-btn { border-color: rgba(84,84,88,.6); }
+  .alert-btn { color: #0a84ff; } .alert-danger { color: #ff453a; }
+}
+</style>
+<div class="nav" id="nav" style="padding-top: 47px; height: 44px"><div class="nav-title">理发预约</div></div>
+
+<div class="page" style="padding-top: 91px">
+  <div class="hero">
+    <div class="large-title fade-up" id="title">理发预约</div>
+    <div class="subtitle fade-up" style="animation-delay: 60ms">每周日 · 下午 2:00 起</div>
+  </div>
+
+  <div id="tickets"></div>
+
+  <div class="section-header fade-up" style="animation-delay: 120ms" id="contactHeader">地址与联系方式</div>
+  <div class="group fade-up" style="animation-delay: 140ms">
+    <div class="row" id="addrRow" data-copy="100 Town Center Dr, Savannah, GA, Apartment 2308" data-msg="地址已复制">
+      <div class="icon icon-red"><div class="pin-dot"></div></div>
+      <div class="row-main"><div class="row-title">100 Town Center Dr, Savannah, GA</div><div class="row-sub">Apartment 2308</div></div>
+      <div class="row-accessory">复制</div>
+    </div>
+    <div class="row" data-copy="13110987920" data-msg="微信号已复制">
+      <div class="icon icon-wechat"><div class="bubble"></div></div>
+      <div class="row-main"><div class="row-sub">微信号</div><div class="row-title">13110987920</div></div>
+      <div class="row-accessory">复制</div>
+    </div>
+    <div class="row" id="phoneRow">
+      <div class="icon icon-green"><div class="handset"></div></div>
+      <div class="row-main"><div class="row-sub">电话</div><div class="row-title">+1 912-703-8740</div></div>
+      <div class="row-accessory">拨打</div>
+    </div>
+  </div>
+
+  <div class="section-header fade-up" style="animation-delay: 180ms">客户名称</div>
+  <div class="group fade-up" style="animation-delay: 200ms"><div class="row"><input class="field" id="name" placeholder="填写你的名字" value="小王"></div></div>
+
+  <div class="section-header fade-up" style="animation-delay: 220ms">付款方式</div>
+  <div class="segmented fade-up" style="animation-delay: 230ms" id="paySeg">
+    <div class="seg-indicator" id="payInd" style="width: calc((100% - 4px) / 2)"></div>
+    <div class="seg-item seg-on" data-p="0"><div class="seg-label seg-label-single">现金</div></div>
+    <div class="seg-item" data-p="1"><div class="seg-label seg-label-single">Zelle</div></div>
+  </div>
+  <div class="zelle" id="zelle">
+    <div class="group zelle-inner">
+      <div class="row" data-copy="+1 912-703-8740" data-msg="Zelle 账号已复制">
+        <div class="row-main"><div class="row-sub">理完发后转账到这个 Zelle 账号</div><div class="row-title">+1 912-703-8740</div></div>
+        <div class="row-accessory">复制</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header fade-up" style="animation-delay: 240ms">日期</div>
+  <div class="segmented fade-up" style="animation-delay: 260ms">
+    <div class="seg-indicator" id="ind" style="width: calc((100% - 4px) / 2)"></div>
+    <div class="seg-item seg-on" data-i="0" id="d0"><div class="seg-label">11月1日</div><div class="seg-sub">周日</div></div>
+    <div class="seg-item" data-i="1"><div class="seg-label">11月8日</div><div class="seg-sub">周日</div></div>
+  </div>
+
+  <div class="section-header fade-up" style="animation-delay: 300ms"><span>时间</span><span class="section-note">每位 45 分钟</span></div>
+  <div id="slotArea"></div>
+
+  <a class="footer" href="admin.html" style="display:block;text-decoration:none">店主入口</a>
+</div>
+
+<div class="cta" id="cta">
+  <div class="cta-info"><div class="cta-label" id="ctaLabel"></div><div class="cta-value" id="ctaValue"></div></div>
+  <div class="btn-primary" id="book">预约</div>
+</div>
+
+<div class="sheet-root" id="sheet" style="display:none">
+  <div class="mask" id="mask"></div>
+  <div class="sheet">
+    <div class="grabber"></div>
+    <div id="confirm">
+      <div class="sheet-title">确认预约</div>
+      <div class="summary">
+        <div class="summary-row"><span class="summary-k">客户名称</span><span class="summary-v" id="sName"></span></div>
+        <div class="summary-row"><span class="summary-k">日期</span><span class="summary-v" id="sDate"></span></div>
+        <div class="summary-row"><span class="summary-k">时间</span><span class="summary-v" id="sTime"></span></div>
+        <div class="summary-row"><span class="summary-k">付款方式</span><span class="summary-v" id="sPay"></span></div>
+        <div class="summary-row"><span class="summary-k">地址</span><span class="summary-v">100 Town Center Dr, Savannah, GA<br>Apartment 2308</span></div>
+      </div>
+      <div class="btn-primary sheet-btn" id="submit">确认预约</div>
+      <div class="btn-text" id="later">再想想</div>
+    </div>
+    <div id="done" style="display:none">
+      <div class="success">
+        <div class="check-circle"><div class="check"></div></div>
+        <div class="success-title">预约成功</div>
+        <div class="success-time" id="dTime"></div>
+        <div class="success-addr" id="dPay"></div>
+        <div class="success-addr">100 Town Center Dr, Savannah, GA</div>
+        <div class="success-addr">Apartment 2308</div>
+      </div>
+      <div class="btn-primary sheet-btn" id="finish">完成</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// 用浏览器事件模拟小程序里的 hover-class / setData，只用于预览
+const $ = (id) => document.getElementById(id)
+const dates = [
+  { label: '11月1日', weekday: '周日', booked: false },
+  { label: '11月8日', weekday: '周日', booked: false }
+]
+const times = ['14:00','14:45','15:30','16:15','17:00','17:45','18:30','19:15','20:00','20:45','21:30','22:15']
+const taken = new Set(['14:00', '16:15', '19:15'])
+let di = 0, sel = '', pay = 0
+const PAYS = ['现金', 'Zelle']
+const bookings = []
+const end = (t) => { const [h, m] = t.split(':').map(Number), x = h * 60 + m + 45; return `${String(x / 60 | 0).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}` }
+
+function press(el, cls) {
+  el.addEventListener('pointerdown', () => el.classList.add(cls))
+  ;['pointerup', 'pointerleave', 'pointercancel'].forEach((e) => el.addEventListener(e, () => el.classList.remove(cls)))
+}
+
+function renderSlots() {
+  const area = $('slotArea')
+  if (dates[di].booked) {
+    area.innerHTML = '<div class="empty fade-up"><div class="empty-title">这周已经约好了</div><div class="empty-sub">每人每周可预约一次</div></div>'
+    return
+  }
+  area.innerHTML = '<div class="slots">' + times.map((t, i) =>
+    `<div class="slot slot-in ${taken.has(t) ? 'slot-taken' : ''} ${t === sel ? 'slot-on' : ''}" data-t="${t}" style="animation-delay:${320 + i * 25}ms">${t}</div>`).join('') + '</div>'
+  area.querySelectorAll('.slot').forEach((el) => {
+    if (taken.has(el.dataset.t)) return
+    press(el, 'slot-pressed')
+    el.onclick = () => {
+      sel = sel === el.dataset.t ? '' : el.dataset.t
+      area.querySelectorAll('.slot').forEach((s) => s.classList.toggle('slot-on', s.dataset.t === sel))
+      updateCta()
+    }
+  })
+}
+
+function updateCta() {
+  $('cta').classList.toggle('cta-show', !!sel && $('sheet').style.display === 'none')
+  if (sel) {
+    $('ctaLabel').textContent = `${dates[di].label} ${dates[di].weekday}`
+    $('ctaValue').textContent = `${sel} – ${end(sel)}`
+  }
+}
+
+document.querySelectorAll('.seg-item[data-i]').forEach((el) => {
+  press(el, 'seg-pressed')
+  el.onclick = () => {
+    const i = Number(el.dataset.i)
+    if (i === di) return
+    di = i; sel = ''
+    $('ind').style.transform = `translateX(${di * 100}%)`
+    document.querySelectorAll('.seg-item[data-i]').forEach((s, j) => s.classList.toggle('seg-on', j === di))
+    renderSlots(); updateCta()
+  }
+})
+$('ind').style.transform = `translateX(${di * 100}%)`
+
+function openSheet() {
+  $('sName').textContent = $('name').value
+  $('sDate').textContent = `${dates[di].label} ${dates[di].weekday}`
+  $('sTime').textContent = `${sel} – ${end(sel)}`
+  $('sPay').textContent = PAYS[pay]
+  $('confirm').style.display = ''; $('done').style.display = 'none'
+  $('sheet').style.display = ''
+  updateCta()
+  setTimeout(() => $('sheet').classList.add('sheet-open'), 30)
+}
+function closeSheet() {
+  $('sheet').classList.remove('sheet-open')
+  setTimeout(() => { $('sheet').style.display = 'none'; updateCta() }, 500)
+}
+$('book').onclick = openSheet
+$('mask').onclick = closeSheet
+$('later').onclick = closeSheet
+$('submit').onclick = () => {
+  $('submit').innerHTML = '<div class="spinner"></div>'
+  setTimeout(() => {
+    $('submit').textContent = '确认预约'
+    $('dTime').textContent = `${dates[di].label} ${dates[di].weekday} · ${sel}`
+    $('dPay').textContent = `付款方式：${PAYS[pay]}`
+    $('confirm').style.display = 'none'; $('done').style.display = ''
+  }, 700)
+}
+$('finish').onclick = () => {
+  taken.add(sel)
+  dates[di].booked = true
+  bookings.push({ di, time: sel, name: $('name').value, pay: PAYS[pay] })
+  sel = ''
+  closeSheet(); renderAll()
+  setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 300)
+}
+
+function renderTickets() {
+  $('tickets').innerHTML = bookings.map((b, i) => `
+  <div class="ticket fade-up">
+    <div class="ticket-top"><div class="badge">已预约</div><div class="ticket-date">${dates[b.di].label} · ${dates[b.di].weekday}</div></div>
+    <div class="ticket-time">${b.time}<span class="ticket-end"> – ${end(b.time)}</span></div>
+    <div class="ticket-name">${b.name} · ${b.pay}付款</div>
+    <div class="ticket-divider"></div>
+    <div class="ticket-addr">100 Town Center Dr, Savannah, GA</div>
+    <div class="ticket-door">Apartment 2308</div>
+    <div class="ticket-actions"><div class="ticket-btn" data-copy="100 Town Center Dr, Savannah, GA, Apartment 2308" data-msg="地址已复制">复制地址</div><div class="ticket-btn ticket-btn-danger" data-i="${i}">取消预约</div></div>
+  </div>`).join('')
+  $('tickets').querySelectorAll('.ticket-btn').forEach((el) => press(el, 'ticket-btn-pressed'))
+  bindCopy($('tickets'))
+  $('tickets').querySelectorAll('.ticket-btn-danger').forEach((el) => el.onclick = () => {
+    // 不用浏览器的 confirm()：很多内嵌浏览器会直接拦掉它并返回“否”
+    showModal({
+      title: '取消这个预约？',
+      content: '取消后这个时间会开放给其他人。',
+      confirmText: '取消预约',
+      cancelText: '保留',
+      onConfirm() {
+        const b = bookings.splice(Number(el.dataset.i), 1)[0]
+        taken.delete(b.time)
+        dates[b.di].booked = false
+        renderAll()
+        showToast('已取消')
+      }
+    })
+  })
+  $('addrRow').style.display = bookings.length ? 'none' : ''
+  $('contactHeader').textContent = bookings.length ? '联系店主' : '地址与联系方式'
+}
+
+function renderSegments() {
+  document.querySelectorAll('.seg-item[data-i]').forEach((el, j) => {
+    el.querySelector('.seg-sub').textContent = dates[j].booked ? '已预约' : dates[j].weekday
+  })
+}
+
+function renderAll() { renderTickets(); renderSegments(); renderSlots(); updateCta() }
+document.querySelectorAll('.btn-primary, .ticket-btn').forEach((el) => press(el, el.classList.contains('ticket-btn') ? 'ticket-btn-pressed' : 'btn-pressed'))
+
+// 模拟 IntersectionObserver 折叠导航栏
+new IntersectionObserver(([e]) => $('nav').classList.toggle('nav-collapsed', !e.isIntersecting), { rootMargin: '-91px 0px 0px 0px' }).observe($('title'))
+
+// 付款方式
+document.querySelectorAll('.seg-item[data-p]').forEach((el) => {
+  press(el, 'seg-pressed')
+  el.onclick = () => {
+    pay = Number(el.dataset.p)
+    $('payInd').style.transform = `translateX(${pay * 100}%)`
+    document.querySelectorAll('.seg-item[data-p]').forEach((s, j) => s.classList.toggle('seg-on', j === pay))
+    $('zelle').classList.toggle('zelle-show', pay === 1)
+  }
+})
+
+// 复制（预览里用浏览器剪贴板；小程序里是 wx.setClipboardData）
+const toast = document.createElement('div')
+toast.className = 'toast'
+document.body.appendChild(toast)
+function showToast(text) {
+  toast.textContent = text
+  toast.classList.add('toast-show')
+  clearTimeout(showToast.t)
+  showToast.t = setTimeout(() => toast.classList.remove('toast-show'), 1500)
+}
+async function copyText(text, msg) {
+  try {
+    await navigator.clipboard.writeText(text)
+  } catch (e) {
+    const ta = document.createElement('textarea')
+    ta.value = text; document.body.appendChild(ta); ta.select()
+    document.execCommand('copy'); ta.remove()
+  }
+  showToast(msg)
+}
+function bindCopy(root) {
+  root.querySelectorAll('[data-copy]').forEach((el) => {
+    if (el.classList.contains('row')) press(el, 'row-pressed')
+    el.onclick = () => copyText(el.dataset.copy, el.dataset.msg)
+  })
+}
+bindCopy(document)
+press($('phoneRow'), 'row-pressed')
+$('phoneRow').onclick = () => { location.href = 'tel:+19127038740' }
+
+// 模拟 wx.showModal 的 iOS 风格弹窗
+function showModal({ title, content, confirmText, cancelText, onConfirm }) {
+  const root = document.createElement('div')
+  root.className = 'alert-root'
+  root.innerHTML = `<div class="alert">
+    <div class="alert-body"><div class="alert-title"></div><div class="alert-content"></div></div>
+    <div class="alert-actions"><div class="alert-btn alert-cancel"></div><div class="alert-btn alert-danger"></div></div>
+  </div>`
+  root.querySelector('.alert-title').textContent = title
+  root.querySelector('.alert-content').textContent = content
+  root.querySelector('.alert-cancel').textContent = cancelText
+  root.querySelector('.alert-danger').textContent = confirmText
+  document.body.appendChild(root)
+  requestAnimationFrame(() => root.classList.add('alert-open'))
+  const close = () => { root.classList.remove('alert-open'); setTimeout(() => root.remove(), 250) }
+  root.querySelector('.alert-cancel').onclick = close
+  root.querySelector('.alert-danger').onclick = () => { close(); onConfirm() }
+}
+
+renderAll()
+</script>
+
+</html>

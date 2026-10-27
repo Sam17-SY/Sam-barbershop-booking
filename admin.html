@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>店主后台</title>
+<style>/* ========== 设计变量：参照 iOS 系统配色，自动适配深色模式 ========== */
+body {
+  --bg: #f2f2f7;
+  --card: #ffffff;
+  --label: #1c1c1e;
+  --secondary: #8e8e93;
+  --tertiary: #c7c7cc;
+  --separator: rgba(60, 60, 67, 0.12);
+  --fill: rgba(120, 120, 128, 0.12);
+  --seg-on: #ffffff;
+  --primary: #1c1c1e;
+  --on-primary: #ffffff;
+  --link: #007aff;
+  --danger: #ff3b30;
+  --success: #34c759;
+  --nav-bg: rgba(242, 242, 247, 0.78);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+
+  /* Apple 常用的缓动曲线 */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  background: var(--bg);
+  color: var(--label);
+  font-family: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body {
+    --bg: #000000;
+    --card: #1c1c1e;
+    --label: #ffffff;
+    --secondary: #8e8e93;
+    --tertiary: #48484a;
+    --separator: rgba(84, 84, 88, 0.6);
+    --fill: rgba(120, 120, 128, 0.24);
+    --seg-on: #636366;
+    --primary: #f5f5f7;
+    --on-primary: #000000;
+    --link: #0a84ff;
+    --danger: #ff453a;
+    --success: #30d158;
+    --nav-bg: rgba(0, 0, 0, 0.72);
+    --shadow: none;
+  } }
+:root[data-theme="dark"] body {
+    --bg: #000000;
+    --card: #1c1c1e;
+    --label: #ffffff;
+    --secondary: #8e8e93;
+    --tertiary: #48484a;
+    --separator: rgba(84, 84, 88, 0.6);
+    --fill: rgba(120, 120, 128, 0.24);
+    --seg-on: #636366;
+    --primary: #f5f5f7;
+    --on-primary: #000000;
+    --link: #0a84ff;
+    --danger: #ff453a;
+    --success: #30d158;
+    --nav-bg: rgba(0, 0, 0, 0.72);
+    --shadow: none;
+  }
+
+/* ========== 通用组件 ========== */
+
+/* 分组列表（iOS 设置页那种圆角白卡片） */
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 24px 24px 7px;
+  font-size: 13px;
+  color: var(--secondary);
+  letter-spacing: 0.25px;
+}
+.group {
+  margin: 0 16px;
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.row {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 10px 16px;
+  transition: background-color 200ms var(--ease-out);
+}
+.row + .row { border-top: 0.5px solid var(--separator); }
+.row-pressed { background: var(--fill); }
+
+/* 主按钮：按下时轻微缩小，像 iOS 一样有“按下去”的手感 */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  padding: 0 24px;
+  border-radius: 499.5px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: 16px;
+  font-weight: 600;
+  transition: transform 250ms var(--ease-out), opacity 250ms var(--ease-out);
+}
+.btn-pressed { transform: scale(0.96); opacity: 0.85; }
+.btn-text {
+  text-align: center;
+  padding: 14px 0 4px;
+  color: var(--link);
+  font-size: 15px;
+}
+
+/* ========== 分段控件 ========== */
+.segmented {
+  position: relative;
+  display: flex;
+  margin: 0 16px;
+  padding: 2px;
+  border-radius: 11px;
+  background: var(--fill);
+}
+.seg-indicator {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  border-radius: 9px;
+  background: var(--seg-on);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1), 0 1px 1px rgba(0, 0, 0, 0.04);
+  /* 弹簧曲线：滑过去时有一点点回弹 */
+  transition: transform 450ms var(--ease-spring);
+}
+.seg-item {
+  position: relative;
+  flex: 1;
+  padding: 8px 0;
+  text-align: center;
+  transition: transform 200ms var(--ease-out);
+}
+.seg-pressed { transform: scale(0.96); }
+.seg-label { font-size: 15px; font-weight: 500; }
+.seg-sub { margin-top: 1px; font-size: 11px; color: var(--secondary); }
+.seg-on .seg-label { font-weight: 600; }
+.seg-label-single { padding: 3px 0; }
+
+/* 进场动画：淡入 + 上移，配合 animation-delay 做逐个出现 */
+.fade-up {
+  animation: fadeUp 600ms var(--ease-out) backwards;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 骨架屏闪光 */
+.skeleton {
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--fill) 0%, var(--card) 50%, var(--fill) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+/* 加载转圈 */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 700ms linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.sk { height: 100px; margin: 16px 16px 0; }
+.sk-tall { height: 200px; }
+
+/* picker 包了一层，原来的 .row + .row 分隔线选不到，这里手动加 */
+.row-sep { border-top: 0.5px solid var(--separator); }
+.col { flex-direction: column; align-items: stretch; }
+
+/* 切换列表时，旧内容先变淡，新数据回来再恢复 */
+.dim { opacity: 0.4; transition: opacity 200ms var(--ease-out); }
+
+.scope { margin-top: 12px; }
+
+/* ========== 统计卡片 ========== */
+.stats {
+  display: flex;
+  margin: 12px 16px 0;
+  padding: 14px 0;
+  border-radius: 12px;
+  background: var(--card);
+  transition: opacity 200ms var(--ease-out);
+}
+.stat { flex: 1; text-align: center; }
+.stat + .stat { border-left: 0.5px solid var(--separator); }
+.stat-num {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+.stat-label {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border-radius: 50%;
+}
+.dot-cash { background: var(--success); }
+.dot-zelle { background: #8b5cf6; }
+
+/* ========== 日期分组 ========== */
+.day { color: var(--label); font-size: 15px; font-weight: 600; }
+.day-meta { font-size: 11px; color: var(--secondary); }
+
+/* ========== 客户行 ========== */
+.customer + .customer { border-top: 0.5px solid var(--separator); }
+.when { width: 60px; flex-shrink: 0; }
+.time {
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.end {
+  font-size: 11px;
+  color: var(--secondary);
+  font-variant-numeric: tabular-nums;
+}
+.who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  transition: opacity 200ms var(--ease-out);
+}
+.who-pressed { opacity: 0.5; }
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 16px;
+}
+.pay {
+  flex-shrink: 0;
+  margin-left: 7px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--fill);
+  color: var(--secondary);
+}
+.pay-cash { background: rgba(52, 199, 89, 0.14); color: #1f9d48; }
+.pay-zelle { background: rgba(139, 92, 246, 0.14); color: #7c4dff; }
+@media (prefers-color-scheme: dark) {
+  .pay-cash { color: #4ade80; }
+  .pay-zelle { color: #a78bfa; }
+}
+
+.del {
+  flex-shrink: 0;
+  margin-left: 8px;
+  padding: 5px 12px;
+  border-radius: 499.5px;
+  background: rgba(255, 59, 48, 0.12);
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 500;
+  transition: transform 200ms var(--ease-out);
+}
+.del-pressed { transform: scale(0.92); }
+
+/* ========== 设置 ========== */
+.row-label { flex: 1; }
+.row-value { color: var(--secondary); }
+.chevron {
+  width: 7px;
+  height: 7px;
+  margin-left: 8px;
+  border-top: 2px solid var(--tertiary);
+  border-right: 2px solid var(--tertiary);
+  transform: rotate(45deg);
+}
+.footnote {
+  margin: 7px 24px 0;
+  font-size: 12px;
+  color: var(--secondary);
+  line-height: 1.5;
+}
+
+/* ========== 其它 ========== */
+.hint { font-size: 14px; color: var(--secondary); line-height: 1.5; }
+.openid {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--fill);
+  font-family: Menlo, monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+.link { color: var(--link); }
+
+.empty {
+  margin: 12px 16px 0;
+  padding: 32px 0;
+  border-radius: 12px;
+  background: var(--card);
+  text-align: center;
+}
+.empty-title { font-size: 16px; font-weight: 600; }
+.empty-sub { margin-top: 4px; font-size: 13px; color: var(--secondary); }
+
+
+body { margin: 0; } * { box-sizing: border-box; } input { border: 0; background: none; outline: none; font: inherit; }
+.nav, .cta { box-sizing: content-box; }
+.toast { position: fixed; left: 50%; top: 45%; z-index: 200; padding: 12px 20px; border-radius: 12px; background: rgba(0,0,0,.75); color: #fff; font-size: 15px;
+  transform: translate(-50%, -50%) scale(.9); opacity: 0; pointer-events: none; transition: opacity 200ms, transform 300ms cubic-bezier(0.34,1.56,0.64,1); }
+.toast-show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.alert-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300; display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0); transition: background 250ms; }
+.alert-open { background: rgba(0,0,0,.35); }
+.alert { width: 270px; border-radius: 14px; overflow: hidden; text-align: center;
+  background: rgba(242,242,247,.92); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+  transform: scale(1.15); opacity: 0; transition: transform 300ms cubic-bezier(0.2,0.8,0.2,1), opacity 200ms; }
+.alert-open .alert { transform: scale(1); opacity: 1; }
+.alert-body { padding: 20px 16px 18px; }
+.alert-title { font-size: 17px; font-weight: 600; }
+.alert-content { margin-top: 4px; font-size: 13px; line-height: 1.4; }
+.alert-actions { display: flex; border-top: .5px solid rgba(60,60,67,.29); }
+.alert-btn { flex: 1; padding: 11px 0; font-size: 17px; color: #007aff; cursor: pointer; }
+.alert-btn + .alert-btn { border-left: .5px solid rgba(60,60,67,.29); }
+.alert-btn:active { background: rgba(0,0,0,.06); }
+.alert-danger { color: #ff3b30; font-weight: 600; }
+/* 模拟微信原生滚轮选择器（picker） */
+.wheel-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300; }
+.wheel-mask { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0); transition: background 300ms; }
+.wheel-open .wheel-mask { background: rgba(0,0,0,.4); }
+.wheel-sheet { position: absolute; left: 0; right: 0; bottom: 0; padding-bottom: 24px; border-radius: 14px 14px 0 0; background: var(--card);
+  transform: translateY(100%); transition: transform 450ms cubic-bezier(0.32,0.72,0,1); }
+.wheel-open .wheel-sheet { transform: none; }
+.wheel-bar { display: flex; justify-content: space-between; align-items: center; height: 52px; padding: 0 20px; border-bottom: .5px solid var(--separator); font-size: 17px; }
+.wheel-title { font-weight: 600; }
+.wheel-cancel { color: var(--secondary); cursor: pointer; }
+.wheel-ok { color: var(--link); font-weight: 600; cursor: pointer; }
+.wheel-cols { position: relative; display: flex; justify-content: center; gap: 8px; padding: 0 24px; }
+.wheel-band { position: absolute; left: 16px; right: 16px; top: 50%; height: 40px; margin-top: -20px; border-radius: 10px; background: var(--fill); pointer-events: none; }
+.wheel-col { position: relative; flex: 1; max-width: 160px; height: 220px; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent); mask-image: linear-gradient(transparent, #000 35%, #000 65%, transparent); }
+.wheel-col::-webkit-scrollbar { display: none; }
+.wheel-pad { height: 90px; }
+.wheel-item { height: 40px; line-height: 40px; text-align: center; font-size: 21px; scroll-snap-align: center; color: var(--label);
+  font-variant-numeric: tabular-nums; cursor: pointer; transition: opacity 150ms; opacity: .35; }
+.wheel-item.on { opacity: 1; font-weight: 500; }
+.wheel-sep { align-self: center; font-size: 21px; font-weight: 600; z-index: 1; }
+/* 模拟微信原生导航栏（店主页用） */
+.native-nav { position: sticky; top: 0; z-index: 50; height: 44px; padding-top: 47px; box-sizing: content-box; display: flex; align-items: center; justify-content: center;
+  background: var(--bg); font-size: 17px; font-weight: 600; }
+.native-back { position: absolute; left: 12px; bottom: 0; height: 44px; display: flex; align-items: center; color: var(--label); text-decoration: none; font-size: 28px; font-weight: 300; }
+@media (prefers-color-scheme: dark) {
+  .alert { background: rgba(44,44,46,.92); color: #fff; }
+  .alert-actions, .alert-btn + .alert-btn { border-color: rgba(84,84,88,.6); }
+  .alert-btn { color: #0a84ff; } .alert-danger { color: #ff453a; }
+}
+</style></head><body><div class="native-nav"><a class="native-back" href="index.html">‹</a>店主后台</div>
+
+<div class="segmented scope fade-up">
+  <div class="seg-indicator" id="ind" style="width: calc((100% - 4px) / 2)"></div>
+  <div class="seg-item seg-on" data-s="0"><div class="seg-label seg-label-single">即将到来</div></div>
+  <div class="seg-item" data-s="1"><div class="seg-label seg-label-single">历史记录</div></div>
+</div>
+
+<div class="stats fade-up" style="animation-delay: 40ms">
+  <div class="stat"><div class="stat-num" id="sTotal">0</div><div class="stat-label">位客户</div></div>
+  <div class="stat"><div class="stat-num" id="sCash">0</div><div class="stat-label"><span class="dot dot-cash"></span>现金</div></div>
+  <div class="stat"><div class="stat-num" id="sZelle">0</div><div class="stat-label"><span class="dot dot-zelle"></span>Zelle</div></div>
+</div>
+
+<div id="list"></div>
+
+<div id="settings">
+  <div class="section-header">营业设置</div>
+  <div class="group">
+    <div class="row" id="weekdayRow"><div class="row-label">每周营业日</div><div class="row-value" id="weekdayVal">周日</div><div class="chevron"></div></div>
+    <div class="row row-sep" id="startRow"><div class="row-label">几点开始</div><div class="row-value" id="startVal">14:00</div><div class="chevron"></div></div>
+  </div>
+  <div class="footnote">改了之后顾客只能约新的日子和时间，已有的预约不受影响。</div>
+</div>
+<div style="height: 40px"></div>
+
+<script>
+// 预览用的假数据，真实小程序里来自云数据库
+const $ = (id) => document.getElementById(id)
+const data = {
+  upcoming: [
+    { date: '11月1日', weekday: '周日', time: '14:00', name: 'Lily', pay: 'cash' },
+    { date: '11月1日', weekday: '周日', time: '14:45', name: 'Kevin', pay: 'zelle' },
+    { date: '11月1日', weekday: '周日', time: '16:15', name: '小王', pay: 'cash' },
+    { date: '11月1日', weekday: '周日', time: '19:15', name: 'Amy Chen', pay: 'zelle' },
+    { date: '11月8日', weekday: '周日', time: '15:30', name: 'David', pay: 'cash' }
+  ],
+  past: [
+    { date: '10月25日', weekday: '周日', time: '14:00', name: '阿杰', pay: 'cash' },
+    { date: '10月25日', weekday: '周日', time: '15:30', name: 'Sophia', pay: 'zelle' },
+    { date: '10月25日', weekday: '周日', time: '17:00', name: 'Mike', pay: 'zelle' },
+    { date: '10月18日', weekday: '周日', time: '14:45', name: 'Lily', pay: 'cash' },
+    { date: '10月18日', weekday: '周日', time: '16:15', name: '小王', pay: 'cash' }
+  ]
+}
+const PAY = { cash: '现金', zelle: 'Zelle' }
+const end = (t) => { const [h, m] = t.split(':').map(Number), x = h * 60 + m + 45; return `${String(x / 60 | 0).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}` }
+let scope = 0
+
+function press(el, cls) {
+  el.addEventListener('pointerdown', () => el.classList.add(cls))
+  ;['pointerup', 'pointerleave', 'pointercancel'].forEach((e) => el.addEventListener(e, () => el.classList.remove(cls)))
+}
+
+function render() {
+  const items = data[scope === 0 ? 'upcoming' : 'past']
+  $('sTotal').textContent = items.length
+  $('sCash').textContent = items.filter((b) => b.pay === 'cash').length
+  $('sZelle').textContent = items.filter((b) => b.pay === 'zelle').length
+
+  const groups = []
+  items.forEach((b) => {
+    let g = groups.find((x) => x.date === b.date)
+    if (!g) groups.push(g = { date: b.date, weekday: b.weekday, items: [] })
+    g.items.push(b)
+  })
+
+  $('list').innerHTML = !groups.length
+    ? `<div class="empty fade-up"><div class="empty-title">${scope === 0 ? '暂时没有预约' : '还没有历史记录'}</div><div class="empty-sub">${scope === 0 ? '有人预约时你会收到邮件' : '理完发的预约会出现在这里'}</div></div>`
+    : groups.map((g, gi) => `
+      <div class="section-header fade-up" style="animation-delay:${80 + gi * 50}ms">
+        <span class="day">${g.date} ${g.weekday}</span>
+        <span class="day-meta">${g.items.length} 位 · 现金 ${g.items.filter((b) => b.pay === 'cash').length} · Zelle ${g.items.filter((b) => b.pay === 'zelle').length}</span>
+      </div>
+      <div class="group fade-up" style="animation-delay:${100 + gi * 50}ms">
+        ${g.items.map((b) => `
+        <div class="row customer">
+          <div class="when"><div class="time">${b.time}</div><div class="end">${end(b.time)}</div></div>
+          <div class="who"><div class="name">${b.name}</div><div class="pay pay-${b.pay}">${PAY[b.pay]}</div></div>
+          ${scope === 0 ? `<div class="del" data-key="${b.date}_${b.time}">取消</div>` : ''}
+        </div>`).join('')}
+      </div>`).join('')
+
+  $('list').querySelectorAll('.del').forEach((el) => {
+    press(el, 'del-pressed')
+    el.onclick = () => {
+      const b = data.upcoming.find((x) => `${x.date}_${x.time}` === el.dataset.key)
+      showModal({
+        title: `取消 ${b.name} 的预约？`,
+        content: '取消后这个时间会重新开放。',
+        confirmText: '取消预约',
+        cancelText: '保留',
+        onConfirm() {
+          data.upcoming.splice(data.upcoming.indexOf(b), 1)
+          render()
+          showToast('已取消')
+        }
+      })
+    }
+  })
+  $('settings').style.display = scope === 0 ? '' : 'none'
+}
+
+document.querySelectorAll('.seg-item[data-s]').forEach((el) => {
+  press(el, 'seg-pressed')
+  el.onclick = () => {
+    const s = Number(el.dataset.s)
+    if (s === scope) return
+    scope = s
+    $('ind').style.transform = `translateX(${scope * 100}%)`
+    document.querySelectorAll('.seg-item[data-s]').forEach((x, j) => x.classList.toggle('seg-on', j === scope))
+    render()
+  }
+})
+
+// 设置：弹出滚轮选择（模拟小程序的 <picker>）
+const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+const HOURS = Array.from({ length: 15 }, (_, i) => String(i + 8).padStart(2, '0'))   // 08–22
+const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
+const LATEST = '22:15'
+let wd = 0, startTime = '14:00'
+press($('weekdayRow'), 'row-pressed'); press($('startRow'), 'row-pressed')
+
+$('weekdayRow').onclick = () => openWheel({
+  title: '每周营业日',
+  columns: [{ items: WEEKDAYS, index: wd }],
+  onConfirm([i]) {
+    wd = i
+    $('weekdayVal').textContent = WEEKDAYS[wd]
+    showToast(`营业日已改为${WEEKDAYS[wd]}`)
+  }
+})
+
+$('startRow').onclick = () => {
+  const [h, m] = startTime.split(':')
+  openWheel({
+    title: '几点开始',
+    columns: [{ items: HOURS, index: HOURS.indexOf(h) }, { items: MINUTES, index: MINUTES.indexOf(m) }],
+    separator: ':',
+    onConfirm([hi, mi]) {
+      let t = `${HOURS[hi]}:${MINUTES[mi]}`
+      if (t > LATEST) { t = LATEST; showToast(`最晚 ${LATEST} 开始`) } else showToast(`改为 ${t} 开始`)
+      startTime = t
+      $('startVal').textContent = t
+    }
+  })
+}
+
+const ITEM_H = 40
+function openWheel({ title, columns, separator, onConfirm }) {
+  const root = document.createElement('div')
+  root.className = 'wheel-root'
+  root.innerHTML = `<div class="wheel-mask"></div>
+    <div class="wheel-sheet">
+      <div class="wheel-bar"><span class="wheel-cancel">取消</span><span class="wheel-title"></span><span class="wheel-ok">确定</span></div>
+      <div class="wheel-cols"><div class="wheel-band"></div></div>
+    </div>`
+  root.querySelector('.wheel-title').textContent = title
+  const colsEl = root.querySelector('.wheel-cols')
+  const selected = columns.map((c) => Math.max(c.index, 0))
+  const cols = columns.map((c, ci) => {
+    if (ci > 0 && separator) {
+      const sep = document.createElement('div'); sep.className = 'wheel-sep'; sep.textContent = separator; colsEl.appendChild(sep)
+    }
+    const col = document.createElement('div')
+    col.className = 'wheel-col'
+    col.innerHTML = '<div class="wheel-pad"></div>' + c.items.map((t) => `<div class="wheel-item">${t}</div>`).join('') + '<div class="wheel-pad"></div>'
+    colsEl.appendChild(col)
+    const items = col.querySelectorAll('.wheel-item')
+    const mark = () => items.forEach((el, i) => el.classList.toggle('on', i === selected[ci]))
+    const read = () => Math.min(items.length - 1, Math.max(0, Math.round(col.scrollTop / ITEM_H)))
+    col.addEventListener('scroll', () => {
+      const i = read()
+      if (i !== selected[ci]) { selected[ci] = i; mark() }
+    })
+    items.forEach((el, i) => el.onclick = () => col.scrollTo({ top: i * ITEM_H, behavior: 'smooth' }))
+    return { col, mark, read, index: selected[ci] }
+  })
+  document.body.appendChild(root)
+  cols.forEach((c) => { c.col.scrollTop = c.index * ITEM_H; c.mark() })
+  requestAnimationFrame(() => root.classList.add('wheel-open'))
+  const close = () => { root.classList.remove('wheel-open'); setTimeout(() => root.remove(), 450) }
+  root.querySelector('.wheel-mask').onclick = close
+  root.querySelector('.wheel-cancel').onclick = close
+  // 按“确定”时直接读滚轮当前位置，快速滑动后马上点确定也不会选错
+  root.querySelector('.wheel-ok').onclick = () => { close(); onConfirm(cols.map((c) => c.read())) }
+}
+
+const toast = document.createElement('div')
+toast.className = 'toast'
+document.body.appendChild(toast)
+function showToast(text) {
+  toast.textContent = text
+  toast.classList.add('toast-show')
+  clearTimeout(showToast.t)
+  showToast.t = setTimeout(() => toast.classList.remove('toast-show'), 1500)
+}
+
+function showModal({ title, content, confirmText, cancelText, onConfirm }) {
+  const root = document.createElement('div')
+  root.className = 'alert-root'
+  root.innerHTML = `<div class="alert">
+    <div class="alert-body"><div class="alert-title"></div><div class="alert-content"></div></div>
+    <div class="alert-actions"><div class="alert-btn alert-cancel"></div><div class="alert-btn alert-danger"></div></div>
+  </div>`
+  root.querySelector('.alert-title').textContent = title
+  root.querySelector('.alert-content').textContent = content
+  root.querySelector('.alert-cancel').textContent = cancelText
+  root.querySelector('.alert-danger').textContent = confirmText
+  document.body.appendChild(root)
+  requestAnimationFrame(() => root.classList.add('alert-open'))
+  const close = () => { root.classList.remove('alert-open'); setTimeout(() => root.remove(), 250) }
+  root.querySelector('.alert-cancel').onclick = close
+  root.querySelector('.alert-danger').onclick = () => { close(); onConfirm() }
+}
+
+render()
+</script>
+</body></html>
