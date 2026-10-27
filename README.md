@@ -1,4 +1,4 @@
-# Sam Barbershop Booking
+﻿# Sam Barbershop · 在线预约
 
 理发预约微信小程序的网页预览（示例数据，不会真的预约）。
 

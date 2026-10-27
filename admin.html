@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>店主后台</title>
+<title>店主后台 · Sam Barbershop</title>
 <style>/* ========== 设计变量：参照 iOS 系统配色，自动适配深色模式 ========== */
 body {
   --bg: #f2f2f7;
@@ -19,6 +19,9 @@ body {
   --success: #34c759;
   --nav-bg: rgba(242, 242, 247, 0.78);
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  /* 品牌色：理发店转灯的红和蓝，只用在标志上 */
+  --pole-red: #d0312d;
+  --pole-blue: #2b59c3;
 
   /* Apple 常用的缓动曲线 */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -48,6 +51,8 @@ body {
     --success: #30d158;
     --nav-bg: rgba(0, 0, 0, 0.72);
     --shadow: none;
+    --pole-red: #ff453a;
+    --pole-blue: #409cff;
   } }
 :root[data-theme="dark"] body {
     --bg: #000000;
@@ -65,6 +70,8 @@ body {
     --success: #30d158;
     --nav-bg: rgba(0, 0, 0, 0.72);
     --shadow: none;
+    --pole-red: #ff453a;
+    --pole-blue: #409cff;
   }
 
 /* ========== 通用组件 ========== */
@@ -404,8 +411,9 @@ body { margin: 0; } * { box-sizing: border-box; } input { border: 0; background:
   <div class="group">
     <div class="row" id="weekdayRow"><div class="row-label">每周营业日</div><div class="row-value" id="weekdayVal">周日</div><div class="chevron"></div></div>
     <div class="row row-sep" id="startRow"><div class="row-label">几点开始</div><div class="row-value" id="startVal">14:00</div><div class="chevron"></div></div>
+    <div class="row row-sep" id="endRow"><div class="row-label">几点结束</div><div class="row-value" id="endVal">23:00</div><div class="chevron"></div></div>
   </div>
-  <div class="footnote">改了之后顾客只能约新的日子和时间，已有的预约不受影响。</div>
+  <div class="footnote">最后一位客人在结束时间前理完。改了之后顾客只能约新的日子和时间，已有的预约不受影响。</div>
 </div>
 <div style="height: 40px"></div>
 
@@ -429,7 +437,7 @@ const data = {
   ]
 }
 const PAY = { cash: '现金', zelle: 'Zelle' }
-const end = (t) => { const [h, m] = t.split(':').map(Number), x = h * 60 + m + 45; return `${String(x / 60 | 0).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}` }
+const end = (t, add = 45) => { const [h, m] = t.split(':').map(Number), x = h * 60 + m + add; return `${String(x / 60 | 0).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}` }
 let scope = 0
 
 function press(el, cls) {
@@ -500,11 +508,31 @@ document.querySelectorAll('.seg-item[data-s]').forEach((el) => {
 
 // 设置：弹出滚轮选择（模拟小程序的 <picker>）
 const WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-const HOURS = Array.from({ length: 15 }, (_, i) => String(i + 8).padStart(2, '0'))   // 08–22
+const HOURS = Array.from({ length: 16 }, (_, i) => String(i + 8).padStart(2, '0'))   // 08–23
 const MINUTES = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'))
-const LATEST = '22:15'
-let wd = 0, startTime = '14:00'
-press($('weekdayRow'), 'row-pressed'); press($('startRow'), 'row-pressed')
+// 和云函数的 timeBounds 一样：开始、结束之间至少能排下一位客人（45 分钟）
+const EARLIEST_START = '08:00', LATEST_END = '23:45'
+let wd = 0, startTime = '14:00', endTime = '23:00'
+const latestStart = () => end(endTime, -45)
+const earliestEnd = () => end(startTime)
+press($('weekdayRow'), 'row-pressed'); press($('startRow'), 'row-pressed'); press($('endRow'), 'row-pressed')
+
+// 时间滚轮：选超出范围时自动拉回边界，并提示
+function openTimeWheel({ title, value, min, max, verb, onSave }) {
+  const [h, m] = value.split(':')
+  openWheel({
+    title,
+    columns: [{ items: HOURS, index: HOURS.indexOf(h) }, { items: MINUTES, index: MINUTES.indexOf(m) }],
+    separator: ':',
+    onConfirm([hi, mi]) {
+      let t = `${HOURS[hi]}:${MINUTES[mi]}`
+      if (t > max) { t = max; showToast(`最晚 ${max} ${verb}`) }
+      else if (t < min) { t = min; showToast(`最早 ${min} ${verb}`) }
+      else showToast(`改为 ${t} ${verb}`)
+      onSave(t)
+    }
+  })
+}
 
 $('weekdayRow').onclick = () => openWheel({
   title: '每周营业日',
@@ -516,20 +544,15 @@ $('weekdayRow').onclick = () => openWheel({
   }
 })
 
-$('startRow').onclick = () => {
-  const [h, m] = startTime.split(':')
-  openWheel({
-    title: '几点开始',
-    columns: [{ items: HOURS, index: HOURS.indexOf(h) }, { items: MINUTES, index: MINUTES.indexOf(m) }],
-    separator: ':',
-    onConfirm([hi, mi]) {
-      let t = `${HOURS[hi]}:${MINUTES[mi]}`
-      if (t > LATEST) { t = LATEST; showToast(`最晚 ${LATEST} 开始`) } else showToast(`改为 ${t} 开始`)
-      startTime = t
-      $('startVal').textContent = t
-    }
-  })
-}
+$('startRow').onclick = () => openTimeWheel({
+  title: '几点开始', value: startTime, min: EARLIEST_START, max: latestStart(), verb: '开始',
+  onSave(t) { startTime = t; $('startVal').textContent = t }
+})
+
+$('endRow').onclick = () => openTimeWheel({
+  title: '几点结束', value: endTime, min: earliestEnd(), max: LATEST_END, verb: '结束',
+  onSave(t) { endTime = t; $('endVal').textContent = t }
+})
 
 const ITEM_H = 40
 function openWheel({ title, columns, separator, onConfirm }) {
