@@ -641,6 +641,21 @@ body { margin: 0; } * { box-sizing: border-box; } input { border: 0; background:
 .alert-btn + .alert-btn { border-left: .5px solid rgba(60,60,67,.29); }
 .alert-btn:active { background: rgba(0,0,0,.06); }
 .alert-danger { color: #ff3b30; font-weight: 600; }
+.alert-ok { font-weight: 600; }
+.alert-input { width: 100%; margin-top: 12px; padding: 7px 8px; border-radius: 8px; background: #fff; border: .5px solid rgba(60,60,67,.29); font-size: 15px; text-align: left; }
+/* 模拟 wx.showActionSheet（iOS 底部菜单） */
+.as-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300; }
+.as-mask { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0); transition: background 300ms; }
+.as-open .as-mask { background: rgba(0,0,0,.4); }
+.as-sheet { position: absolute; left: 8px; right: 8px; bottom: 8px; transform: translateY(110%); transition: transform 400ms cubic-bezier(0.32,0.72,0,1); }
+.as-open .as-sheet { transform: none; }
+.as-group { border-radius: 14px; overflow: hidden; background: rgba(242,242,247,.92); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); }
+.as-group + .as-group { margin-top: 8px; background: #fff; }
+.as-title { padding: 14px 16px; text-align: center; font-size: 13px; color: #8e8e93; }
+.as-btn { height: 57px; line-height: 57px; text-align: center; font-size: 20px; color: #007aff; border-top: .5px solid rgba(60,60,67,.29); cursor: pointer; }
+.as-btn:active { background: rgba(0,0,0,.06); }
+.as-cancel { border-top: 0; font-weight: 600; }
+.as-danger { color: #ff3b30; }
 /* 模拟微信原生滚轮选择器（picker） */
 .wheel-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300; }
 .wheel-mask { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0); transition: background 300ms; }
@@ -670,6 +685,9 @@ body { margin: 0; } * { box-sizing: border-box; } input { border: 0; background:
   .alert { background: rgba(44,44,46,.92); color: #fff; }
   .alert-actions, .alert-btn + .alert-btn { border-color: rgba(84,84,88,.6); }
   .alert-btn { color: #0a84ff; } .alert-danger { color: #ff453a; }
+  .alert-input { background: #1c1c1e; color: #fff; border-color: rgba(84,84,88,.6); }
+  .as-group { background: rgba(44,44,46,.92); } .as-group + .as-group { background: #2c2c2e; }
+  .as-btn { color: #0a84ff; border-color: rgba(84,84,88,.6); } .as-danger { color: #ff453a; }
 }
 </style></head><body><div class="nav" id="nav" style="padding-top: 47px; height: 44px"><div class="nav-title">Sam Barbershop</div></div>
 

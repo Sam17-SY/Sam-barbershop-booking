@@ -201,10 +201,41 @@ body {
 
 .scope { margin-top: 12px; }
 
+/* ========== 收入卡片 ========== */
+.income {
+  margin: 12px 16px 0;
+  padding: 16px 18px 14px;
+  border-radius: 12px;
+  background: var(--card);
+  transition: opacity 200ms var(--ease-out);
+}
+.income-top { display: flex; align-items: baseline; justify-content: space-between; }
+.income-label { font-size: 14px; font-weight: 600; }
+.income-date { font-size: 12px; color: var(--secondary); }
+.income-total {
+  margin-top: 6px;
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.income-break { margin-top: 3px; font-size: 13px; color: var(--secondary); font-variant-numeric: tabular-nums; }
+.income-split {
+  display: flex;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--separator);
+}
+.split { flex: 1; }
+.split + .split { padding-left: 18px; border-left: 0.5px solid var(--separator); }
+.split-label { display: flex; align-items: center; font-size: 12px; color: var(--secondary); }
+.split-num { margin-top: 2px; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
 /* ========== 统计卡片 ========== */
 .stats {
   display: flex;
-  margin: 12px 16px 0;
+  margin: 8px 16px 0;
   padding: 14px 0;
   border-radius: 12px;
   background: var(--card);
@@ -239,6 +270,7 @@ body {
 /* ========== 日期分组 ========== */
 .day { color: var(--label); font-size: 15px; font-weight: 600; }
 .day-meta { font-size: 11px; color: var(--secondary); }
+.day-sum { color: var(--label); font-weight: 600; }
 
 /* ========== 客户行 ========== */
 .customer + .customer { border-top: 0.5px solid var(--separator); }
@@ -284,6 +316,21 @@ body {
   .pay-cash { color: #4ade80; }
   .pay-zelle { color: #a78bfa; }
 }
+
+/* 金额列：总价（含小费），下面是小费或“+ 小费” */
+.amount {
+  flex-shrink: 0;
+  min-width: 56px;
+  margin-left: 6px;
+  padding: 3px 4px;
+  border-radius: 6px;
+  text-align: right;
+  transition: transform 200ms var(--ease-out), background-color 200ms var(--ease-out);
+}
+.amount-pressed { transform: scale(0.94); background: var(--fill); }
+.amount-num { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.amount-tip { font-size: 11px; color: var(--success); font-variant-numeric: tabular-nums; }
+.amount-add { font-size: 11px; color: var(--link); }
 
 .del {
   flex-shrink: 0;
@@ -360,6 +407,21 @@ body { margin: 0; } * { box-sizing: border-box; } input { border: 0; background:
 .alert-btn + .alert-btn { border-left: .5px solid rgba(60,60,67,.29); }
 .alert-btn:active { background: rgba(0,0,0,.06); }
 .alert-danger { color: #ff3b30; font-weight: 600; }
+.alert-ok { font-weight: 600; }
+.alert-input { width: 100%; margin-top: 12px; padding: 7px 8px; border-radius: 8px; background: #fff; border: .5px solid rgba(60,60,67,.29); font-size: 15px; text-align: left; }
+/* 模拟 wx.showActionSheet（iOS 底部菜单） */
+.as-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300; }
+.as-mask { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0); transition: background 300ms; }
+.as-open .as-mask { background: rgba(0,0,0,.4); }
+.as-sheet { position: absolute; left: 8px; right: 8px; bottom: 8px; transform: translateY(110%); transition: transform 400ms cubic-bezier(0.32,0.72,0,1); }
+.as-open .as-sheet { transform: none; }
+.as-group { border-radius: 14px; overflow: hidden; background: rgba(242,242,247,.92); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); }
+.as-group + .as-group { margin-top: 8px; background: #fff; }
+.as-title { padding: 14px 16px; text-align: center; font-size: 13px; color: #8e8e93; }
+.as-btn { height: 57px; line-height: 57px; text-align: center; font-size: 20px; color: #007aff; border-top: .5px solid rgba(60,60,67,.29); cursor: pointer; }
+.as-btn:active { background: rgba(0,0,0,.06); }
+.as-cancel { border-top: 0; font-weight: 600; }
+.as-danger { color: #ff3b30; }
 /* 模拟微信原生滚轮选择器（picker） */
 .wheel-root { position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 300; }
 .wheel-mask { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0); transition: background 300ms; }
@@ -389,6 +451,9 @@ body { margin: 0; } * { box-sizing: border-box; } input { border: 0; background:
   .alert { background: rgba(44,44,46,.92); color: #fff; }
   .alert-actions, .alert-btn + .alert-btn { border-color: rgba(84,84,88,.6); }
   .alert-btn { color: #0a84ff; } .alert-danger { color: #ff453a; }
+  .alert-input { background: #1c1c1e; color: #fff; border-color: rgba(84,84,88,.6); }
+  .as-group { background: rgba(44,44,46,.92); } .as-group + .as-group { background: #2c2c2e; }
+  .as-btn { color: #0a84ff; border-color: rgba(84,84,88,.6); } .as-danger { color: #ff453a; }
 }
 </style></head><body><div class="native-nav"><a class="native-back" href="index.html">‹</a>店主后台</div>
 
@@ -396,6 +461,16 @@ body { margin: 0; } * { box-sizing: border-box; } input { border: 0; background:
   <div class="seg-indicator" id="ind" style="width: calc((100% - 4px) / 2)"></div>
   <div class="seg-item seg-on" data-s="0"><div class="seg-label seg-label-single">即将到来</div></div>
   <div class="seg-item" data-s="1"><div class="seg-label seg-label-single">历史记录</div></div>
+</div>
+
+<div class="income fade-up" style="animation-delay: 30ms">
+  <div class="income-top"><span class="income-label" id="iTitle">今日收入</span><span class="income-date" id="iDate"></span></div>
+  <div class="income-total" id="iTotal"></div>
+  <div class="income-break" id="iBreak"></div>
+  <div class="income-split">
+    <div class="split"><div class="split-label"><span class="dot dot-cash"></span>现金</div><div class="split-num" id="iCash"></div></div>
+    <div class="split"><div class="split-label"><span class="dot dot-zelle"></span>Zelle</div><div class="split-num" id="iZelle"></div></div>
+  </div>
 </div>
 
 <div class="stats fade-up" style="animation-delay: 40ms">
@@ -420,23 +495,29 @@ body { margin: 0; } * { box-sizing: border-box; } input { border: 0; background:
 <script>
 // 预览用的假数据，真实小程序里来自云数据库
 const $ = (id) => document.getElementById(id)
+// 预览里把 11月1日 当作“今天”，好演示今日收入
+const TODAY = '11月1日'
+const PRICE = 35
 const data = {
   upcoming: [
-    { date: '11月1日', weekday: '周日', time: '14:00', name: 'Lily', pay: 'cash' },
-    { date: '11月1日', weekday: '周日', time: '14:45', name: 'Kevin', pay: 'zelle' },
-    { date: '11月1日', weekday: '周日', time: '16:15', name: '小王', pay: 'cash' },
-    { date: '11月1日', weekday: '周日', time: '19:15', name: 'Amy Chen', pay: 'zelle' },
-    { date: '11月8日', weekday: '周日', time: '15:30', name: 'David', pay: 'cash' }
+    { date: '11月1日', weekday: '周日', time: '14:00', name: 'Lily', pay: 'cash', tip: 5 },
+    { date: '11月1日', weekday: '周日', time: '14:45', name: 'Kevin', pay: 'zelle', tip: 10 },
+    { date: '11月1日', weekday: '周日', time: '16:15', name: '小王', pay: 'cash', tip: 0 },
+    { date: '11月1日', weekday: '周日', time: '19:15', name: 'Amy Chen', pay: 'zelle', tip: 0 },
+    { date: '11月8日', weekday: '周日', time: '15:30', name: 'David', pay: 'cash', tip: 0 }
   ],
   past: [
-    { date: '10月25日', weekday: '周日', time: '14:00', name: '阿杰', pay: 'cash' },
-    { date: '10月25日', weekday: '周日', time: '15:30', name: 'Sophia', pay: 'zelle' },
-    { date: '10月25日', weekday: '周日', time: '17:00', name: 'Mike', pay: 'zelle' },
-    { date: '10月18日', weekday: '周日', time: '14:45', name: 'Lily', pay: 'cash' },
-    { date: '10月18日', weekday: '周日', time: '16:15', name: '小王', pay: 'cash' }
+    { date: '10月25日', weekday: '周日', time: '14:00', name: '阿杰', pay: 'cash', tip: 5 },
+    { date: '10月25日', weekday: '周日', time: '15:30', name: 'Sophia', pay: 'zelle', tip: 10 },
+    { date: '10月25日', weekday: '周日', time: '17:00', name: 'Mike', pay: 'zelle', tip: 0 },
+    { date: '10月18日', weekday: '周日', time: '14:45', name: 'Lily', pay: 'cash', tip: 5 },
+    { date: '10月18日', weekday: '周日', time: '16:15', name: '小王', pay: 'cash', tip: 0 }
   ]
 }
+data.upcoming.concat(data.past).forEach((b) => { b.price = PRICE })
 const PAY = { cash: '现金', zelle: 'Zelle' }
+const money = (n) => `$${n % 1 ? n.toFixed(2) : n}`
+const sum = (items, f) => items.reduce((s, b) => s + f(b), 0)
 const end = (t, add = 45) => { const [h, m] = t.split(':').map(Number), x = h * 60 + m + add; return `${String(x / 60 | 0).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}` }
 let scope = 0
 
@@ -451,6 +532,15 @@ function render() {
   $('sCash').textContent = items.filter((b) => b.pay === 'cash').length
   $('sZelle').textContent = items.filter((b) => b.pay === 'zelle').length
 
+  // 收入卡片（和小程序 admin.js 的 sumIncome 一样）
+  const inc = scope === 0 ? items.filter((b) => b.date === TODAY) : items
+  $('iTitle').textContent = scope === 0 ? '今日收入' : '历史收入'
+  $('iDate').textContent = scope === 0 ? `${TODAY} · ${inc.length ? `${inc.length} 位客人` : '今天没有预约'}` : `共 ${inc.length} 位客人`
+  $('iTotal').textContent = money(sum(inc, (b) => b.price + b.tip))
+  $('iBreak').textContent = `服务 ${money(sum(inc, (b) => b.price))} · 小费 ${money(sum(inc, (b) => b.tip))}`
+  $('iCash').textContent = money(sum(inc.filter((b) => b.pay === 'cash'), (b) => b.price + b.tip))
+  $('iZelle').textContent = money(sum(inc.filter((b) => b.pay === 'zelle'), (b) => b.price + b.tip))
+
   const groups = []
   items.forEach((b) => {
     let g = groups.find((x) => x.date === b.date)
@@ -463,13 +553,14 @@ function render() {
     : groups.map((g, gi) => `
       <div class="section-header fade-up" style="animation-delay:${80 + gi * 50}ms">
         <span class="day">${g.date} ${g.weekday}</span>
-        <span class="day-meta">${g.items.length} 位 · 现金 ${g.items.filter((b) => b.pay === 'cash').length} · Zelle ${g.items.filter((b) => b.pay === 'zelle').length}</span>
+        <span class="day-meta">${g.items.length} 位 · 现金 ${g.items.filter((b) => b.pay === 'cash').length} · Zelle ${g.items.filter((b) => b.pay === 'zelle').length} · <span class="day-sum">${money(sum(g.items, (b) => b.price + b.tip))}</span></span>
       </div>
       <div class="group fade-up" style="animation-delay:${100 + gi * 50}ms">
         ${g.items.map((b) => `
         <div class="row customer">
           <div class="when"><div class="time">${b.time}</div><div class="end">${end(b.time)}</div></div>
           <div class="who"><div class="name">${b.name}</div><div class="pay pay-${b.pay}">${PAY[b.pay]}</div></div>
+          <div class="amount" data-key="${b.date}_${b.time}"><div class="amount-num">${money(b.price + b.tip)}</div>${b.tip ? `<div class="amount-tip">小费 ${money(b.tip)}</div>` : '<div class="amount-add">+ 小费</div>'}</div>
           ${scope === 0 ? `<div class="del" data-key="${b.date}_${b.time}">取消</div>` : ''}
         </div>`).join('')}
       </div>`).join('')
@@ -491,7 +582,58 @@ function render() {
       })
     }
   })
+  // 点金额加小费：模拟 wx.showActionSheet，选“其他金额”再弹输入框
+  $('list').querySelectorAll('.amount').forEach((el) => {
+    press(el, 'amount-pressed')
+    el.onclick = () => {
+      const b = data[scope === 0 ? 'upcoming' : 'past'].find((x) => `${x.date}_${x.time}` === el.dataset.key)
+      const presets = [5, 10, 15, 20]
+      const items = presets.map((n) => `$${n}`).concat('其他金额')
+      if (b.tip) items.push('清除小费')
+      const save = (tip) => { b.tip = tip; render(); showToast(tip ? `已记小费 ${money(tip)}` : '已清除小费') }
+      showActionSheet({
+        title: `${b.name} 的小费`,
+        items,
+        onPick(i) {
+          if (i < presets.length) return save(presets[i])
+          if (items[i] === '清除小费') return save(0)
+          showModal({
+            title: `${b.name} 的小费`,
+            input: '输入金额，例如 8',
+            confirmText: '保存',
+            cancelText: '取消',
+            onConfirm(text) {
+              const n = Math.round(Number(String(text).replace(/[$\s]/g, '')) * 100) / 100
+              if (!(n >= 0 && n <= 1000)) return showToast('请输入数字')
+              save(n)
+            }
+          })
+        }
+      })
+    }
+  })
   $('settings').style.display = scope === 0 ? '' : 'none'
+}
+
+// 模拟 wx.showActionSheet 的 iOS 底部菜单
+function showActionSheet({ title, items, onPick }) {
+  const root = document.createElement('div')
+  root.className = 'as-root'
+  root.innerHTML = `<div class="as-mask"></div><div class="as-sheet"><div class="as-group"><div class="as-title"></div></div><div class="as-group"><div class="as-btn as-cancel">取消</div></div></div>`
+  root.querySelector('.as-title').textContent = title
+  const group = root.querySelector('.as-group')
+  items.forEach((t, i) => {
+    const btn = document.createElement('div')
+    btn.className = 'as-btn' + (t === '清除小费' ? ' as-danger' : '')
+    btn.textContent = t
+    btn.onclick = () => { close(); onPick(i) }
+    group.appendChild(btn)
+  })
+  document.body.appendChild(root)
+  requestAnimationFrame(() => root.classList.add('as-open'))
+  const close = () => { root.classList.remove('as-open'); setTimeout(() => root.remove(), 400) }
+  root.querySelector('.as-mask').onclick = close
+  root.querySelector('.as-cancel').onclick = close
 }
 
 document.querySelectorAll('.seg-item[data-s]').forEach((el) => {
@@ -604,7 +746,8 @@ function showToast(text) {
   showToast.t = setTimeout(() => toast.classList.remove('toast-show'), 1500)
 }
 
-function showModal({ title, content, confirmText, cancelText, onConfirm }) {
+// 模拟 wx.showModal；传 input 时就是带输入框的版本（editable: true）
+function showModal({ title, content, input, confirmText, cancelText, onConfirm }) {
   const root = document.createElement('div')
   root.className = 'alert-root'
   root.innerHTML = `<div class="alert">
@@ -612,14 +755,21 @@ function showModal({ title, content, confirmText, cancelText, onConfirm }) {
     <div class="alert-actions"><div class="alert-btn alert-cancel"></div><div class="alert-btn alert-danger"></div></div>
   </div>`
   root.querySelector('.alert-title').textContent = title
-  root.querySelector('.alert-content').textContent = content
+  const body = root.querySelector('.alert-content')
+  if (input) {
+    body.innerHTML = '<input class="alert-input" inputmode="decimal">'
+    body.querySelector('input').placeholder = input
+  } else body.textContent = content
   root.querySelector('.alert-cancel').textContent = cancelText
-  root.querySelector('.alert-danger').textContent = confirmText
+  const ok = root.querySelector('.alert-danger')
+  ok.textContent = confirmText
+  if (input) ok.classList.replace('alert-danger', 'alert-ok')
   document.body.appendChild(root)
   requestAnimationFrame(() => root.classList.add('alert-open'))
+  if (input) setTimeout(() => body.querySelector('input').focus(), 300)
   const close = () => { root.classList.remove('alert-open'); setTimeout(() => root.remove(), 250) }
   root.querySelector('.alert-cancel').onclick = close
-  root.querySelector('.alert-danger').onclick = () => { close(); onConfirm() }
+  ok.onclick = () => { close(); onConfirm(input ? body.querySelector('input').value : undefined) }
 }
 
 render()
