@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="zh"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f2f2f7">
+<link rel="icon" href="images/logo-icon.png">
+<link rel="apple-touch-icon" href="images/logo-icon.png">
 <title>Sam Barbershop · 在线预约</title>
 <style>/* ========== 设计变量：参照 iOS 系统配色，自动适配深色模式 ========== */
 body {
@@ -664,67 +667,105 @@ body { margin: 0; } * { box-sizing: border-box; } input { border: 0; background:
   .as-group { background: rgba(44,44,46,.92); } .as-group + .as-group { background: #2c2c2e; }
   .as-btn { color: #0a84ff; border-color: rgba(84,84,88,.6); } .as-danger { color: #ff453a; }
 }
-</style></head><body><div class="nav" id="nav" style="padding-top: 47px; height: 44px"><div class="nav-title">Sam Barbershop</div></div>
+/* 网页版专用样式（小程序的样式由 build.py 从 WXSS 转换过来，这里只补网页才需要的部分） */
+html { -webkit-text-size-adjust: 100%; }
+body { max-width: 560px; margin: 0 auto; min-height: 100vh; }
+a { -webkit-tap-highlight-color: transparent; }
+.row, .seg-item, .slot, .btn-primary, .ticket-btn, .amount, .del, .footer-link { cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none; }
 
-<div class="page" style="padding-top: 91px">
+/* 顶部导航栏：网页没有系统状态栏，只留出刘海屏的安全区 */
+.nav { height: 44px; padding-top: env(safe-area-inset-top); max-width: 560px; margin: 0 auto; }
+.web-page { padding-top: calc(44px + env(safe-area-inset-top)); }
+.native-nav { padding-top: env(safe-area-inset-top); }
+
+.footer { display: flex; flex-direction: column; align-items: center; }
+.footer-link { color: var(--link); }
+.footer-link + .footer-link { margin-top: 0; color: var(--tertiary); }
+
+/* 店主后台：客户名下面一行手机号（点了直接拨打） */
+.who-col { min-width: 0; }
+.who-line { display: flex; align-items: center; min-width: 0; }
+.who-phone { margin-top: 2px; font-size: 12px; color: var(--secondary); font-variant-numeric: tabular-nums; }
+.login-btn { margin: 24px 16px 0; }
+.logout { margin-top: 12px; color: var(--danger); }
+
+/* 演示模式提示条 */
+.demo-banner {
+  position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 30;
+  transform: translateX(-50%); padding: 6px 12px; border-radius: 999px;
+  background: rgba(28, 37, 65, 0.85); color: #fff; font-size: 12px; white-space: nowrap; pointer-events: none;
+}
+.cta-show ~ .demo-banner { display: none; }
+</style></head><body><div class="nav" id="nav"><div class="nav-title">Sam Barbershop</div></div>
+
+<div class="page web-page">
   <div class="hero">
     <img class="logo-badge fade-up" src="images/logo-badge.png" alt="Sam Barbershop">
     <div class="large-title fade-up" style="animation-delay: 30ms" id="title">Sam Barbershop</div>
-    <div class="subtitle fade-up" style="animation-delay: 60ms">每周日 · 下午 2:00 – 晚上 11:00</div>
+    <div class="subtitle fade-up" style="animation-delay: 60ms" id="subtitle">&nbsp;</div>
   </div>
 
-  <div id="tickets"></div>
-
-  <div class="section-header fade-up" style="animation-delay: 120ms" id="contactHeader">地址与联系方式</div>
-  <div class="group fade-up" style="animation-delay: 140ms">
-    <div class="row" id="addrRow" data-copy="100 Town Center Dr, Savannah, GA, Apartment 2308" data-msg="地址已复制">
-      <div class="icon icon-red"><div class="pin-dot"></div></div>
-      <div class="row-main"><div class="row-title">100 Town Center Dr, Savannah, GA</div><div class="row-sub">Apartment 2308</div></div>
-      <div class="row-accessory">复制</div>
-    </div>
-    <div class="row" data-copy="13110987920" data-msg="微信号已复制">
-      <div class="icon icon-wechat"><div class="bubble"></div></div>
-      <div class="row-main"><div class="row-sub">微信号</div><div class="row-title">13110987920</div></div>
-      <div class="row-accessory">复制</div>
-    </div>
-    <div class="row" id="phoneRow">
-      <div class="icon icon-green"><div class="handset"></div></div>
-      <div class="row-main"><div class="row-sub">电话</div><div class="row-title">+1 912-703-8740</div></div>
-      <div class="row-accessory">拨打</div>
-    </div>
+  <!-- 加载中：骨架屏 -->
+  <div id="loading">
+    <div class="skeleton sk-card"></div>
+    <div class="skeleton sk-row"></div>
+    <div class="skeleton sk-grid"></div>
   </div>
 
-  <div class="section-header fade-up" style="animation-delay: 180ms">客户名称</div>
-  <div class="group fade-up" style="animation-delay: 200ms"><div class="row"><input class="field" id="name" placeholder="填写你的名字" value="小王"></div></div>
+  <div id="content" style="display:none">
+    <div id="tickets"></div>
 
-  <div class="section-header fade-up" style="animation-delay: 220ms">付款方式</div>
-  <div class="segmented fade-up" style="animation-delay: 230ms" id="paySeg">
-    <div class="seg-indicator" id="payInd" style="width: calc((100% - 4px) / 2)"></div>
-    <div class="seg-item seg-on" data-p="0"><div class="seg-label seg-label-single">现金</div></div>
-    <div class="seg-item" data-p="1"><div class="seg-label seg-label-single">Zelle</div></div>
-  </div>
-  <div class="zelle" id="zelle">
-    <div class="group zelle-inner">
-      <div class="row" data-copy="+1 912-703-8740" data-msg="Zelle 账号已复制">
-        <div class="row-main"><div class="row-sub">理完发后转账到这个 Zelle 账号</div><div class="row-title">+1 912-703-8740</div></div>
+    <div class="section-header" id="contactHeader">地址与联系方式</div>
+    <div class="group">
+      <div class="row" id="addrRow">
+        <div class="icon icon-red"><div class="pin-dot"></div></div>
+        <div class="row-main"><div class="row-title" id="addr"></div><div class="row-sub" id="door"></div></div>
         <div class="row-accessory">复制</div>
       </div>
+      <div class="row" id="wechatRow">
+        <div class="icon icon-wechat"><div class="bubble"></div></div>
+        <div class="row-main"><div class="row-sub">微信号</div><div class="row-title" id="wechat"></div></div>
+        <div class="row-accessory">复制</div>
+      </div>
+      <a class="row" id="phoneRow" style="color:inherit;text-decoration:none">
+        <div class="icon icon-green"><div class="handset"></div></div>
+        <div class="row-main"><div class="row-sub">电话</div><div class="row-title" id="shopPhone"></div></div>
+        <div class="row-accessory">拨打</div>
+      </a>
     </div>
-  </div>
 
-  <div class="section-header fade-up" style="animation-delay: 240ms">日期</div>
-  <div class="segmented fade-up" style="animation-delay: 260ms">
-    <div class="seg-indicator" id="ind" style="width: calc((100% - 4px) / 2)"></div>
-    <div class="seg-item seg-on" data-i="0" id="d0"><div class="seg-label">11月1日</div><div class="seg-sub">周日</div></div>
-    <div class="seg-item" data-i="1"><div class="seg-label">11月8日</div><div class="seg-sub">周日</div></div>
-  </div>
+    <div class="section-header">客户名称</div>
+    <div class="group"><div class="row"><input class="field" id="name" placeholder="填写你的名字" maxlength="30" autocomplete="name"></div></div>
 
-  <div class="section-header fade-up" style="animation-delay: 300ms"><span>时间</span><span class="section-note" id="slotNote"></span></div>
-  <div id="slotArea"></div>
+    <div class="section-header"><span>手机号</span><span class="section-note">用来确认和取消预约</span></div>
+    <div class="group"><div class="row"><input class="field" id="phone" type="tel" inputmode="tel" placeholder="例如 912-555-0123" autocomplete="tel"></div></div>
 
-  <div class="footer">
-    <div class="footer-brand">Sam Barbershop · Savannah, GA</div>
-    <a class="footer-link" href="admin.html" style="text-decoration:none">店主入口</a>
+    <div class="section-header">付款方式</div>
+    <div class="segmented" id="paySeg">
+      <div class="seg-indicator" id="payInd" style="width: calc((100% - 4px) / 2)"></div>
+      <div class="seg-item seg-on" data-p="0"><div class="seg-label seg-label-single">现金</div></div>
+      <div class="seg-item" data-p="1"><div class="seg-label seg-label-single">Zelle</div></div>
+    </div>
+    <div class="zelle" id="zelle">
+      <div class="group zelle-inner">
+        <div class="row" id="zelleRow">
+          <div class="row-main"><div class="row-sub">理完发后转账到这个 Zelle 账号</div><div class="row-title" id="zelleAcct"></div></div>
+          <div class="row-accessory">复制</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-header">日期</div>
+    <div class="segmented" id="dateSeg"></div>
+
+    <div class="section-header"><span>时间</span><span class="section-note" id="slotNote"></span></div>
+    <div id="slotArea"></div>
+
+    <div class="footer">
+      <div class="footer-brand" id="footerBrand">Sam Barbershop</div>
+      <a class="footer-link" id="findMine" style="text-decoration:none">用手机号查找我的预约</a>
+      <a class="footer-link" href="admin.html" style="text-decoration:none">店主入口</a>
+    </div>
   </div>
 </div>
 
@@ -741,10 +782,10 @@ body { margin: 0; } * { box-sizing: border-box; } input { border: 0; background:
       <div class="sheet-title">确认预约</div>
       <div class="summary">
         <div class="summary-row"><span class="summary-k">客户名称</span><span class="summary-v" id="sName"></span></div>
-        <div class="summary-row"><span class="summary-k">日期</span><span class="summary-v" id="sDate"></span></div>
+        <div class="summary-row"><span class="summary-k">手机号</span><span class="summary-v" id="sPhone"></span></div>
         <div class="summary-row"><span class="summary-k">时间</span><span class="summary-v" id="sTime"></span></div>
         <div class="summary-row"><span class="summary-k">付款方式</span><span class="summary-v" id="sPay"></span></div>
-        <div class="summary-row"><span class="summary-k">地址</span><span class="summary-v">100 Town Center Dr, Savannah, GA<br>Apartment 2308</span></div>
+        <div class="summary-row"><span class="summary-k">地址</span><span class="summary-v" id="sAddr"></span></div>
       </div>
       <div class="btn-primary sheet-btn" id="submit">确认预约</div>
       <div class="btn-text" id="later">再想想</div>
@@ -758,228 +799,16 @@ body { margin: 0; } * { box-sizing: border-box; } input { border: 0; background:
       <div class="summary success-summary">
         <div class="summary-row"><span class="summary-k">时间</span><span class="summary-v" id="dTime"></span></div>
         <div class="summary-row"><span class="summary-k">付款方式</span><span class="summary-v" id="dPay"></span></div>
-        <div class="summary-row"><span class="summary-k">地址</span><span class="summary-v">100 Town Center Dr, Savannah, GA<br>Apartment 2308</span></div>
+        <div class="summary-row"><span class="summary-k">地址</span><span class="summary-v" id="dAddr"></span></div>
       </div>
       <div class="btn-primary sheet-btn" id="finish">完成</div>
     </div>
   </div>
 </div>
 
-<script>
-// 用浏览器事件模拟小程序里的 hover-class / setData，只用于预览
-const $ = (id) => document.getElementById(id)
-const dates = [
-  { label: '11月1日', weekday: '周日', booked: false },
-  { label: '11月8日', weekday: '周日', booked: false }
-]
-const times = ['14:00','14:45','15:30','16:15','17:00','17:45','18:30','19:15','20:00','20:45','21:30','22:15']
-const taken = new Set(['14:00', '16:15', '19:15'])
-let di = 0, sel = '', pay = 0
-const PAYS = ['现金', 'Zelle']
-const bookings = []
-const end = (t) => { const [h, m] = t.split(':').map(Number), x = h * 60 + m + 45; return `${String(x / 60 | 0).padStart(2, '0')}:${String(x % 60).padStart(2, '0')}` }
-
-function press(el, cls) {
-  el.addEventListener('pointerdown', () => el.classList.add(cls))
-  ;['pointerup', 'pointerleave', 'pointercancel'].forEach((e) => el.addEventListener(e, () => el.classList.remove(cls)))
-}
-
-const period = (t) => { const h = Number(t.slice(0, 2)); return h < 12 ? '上午' : h < 18 ? '下午' : '晚上' }
-
-function renderSlots() {
-  const area = $('slotArea')
-  if (dates[di].booked) {
-    $('slotNote').textContent = ''
-    area.innerHTML = '<div class="empty fade-up"><div class="empty-title">这周已经约好了</div><div class="empty-sub">每人每周可预约一次</div></div>'
-    return
-  }
-  $('slotNote').textContent = `剩 ${times.filter((t) => !taken.has(t)).length} 个空位 · 每位 45 分钟`
-  // 按下午 / 晚上分组，和小程序里的 groupSlots 一样
-  const groups = []
-  times.forEach((t, i) => {
-    let g = groups[groups.length - 1]
-    if (!g || g.label !== period(t)) groups.push(g = { label: period(t), slots: [] })
-    g.slots.push({ t, i })
-  })
-  area.innerHTML = groups.map((g) =>
-    `<div class="period slot-in" style="animation-delay:${310 + g.slots[0].i * 25}ms">${g.label}</div><div class="slots">` +
-    g.slots.map(({ t, i }) =>
-      `<div class="slot slot-in ${taken.has(t) ? 'slot-taken' : ''} ${t === sel ? 'slot-on' : ''}" data-t="${t}" style="animation-delay:${320 + i * 25}ms">${t}</div>`).join('') +
-    '</div>').join('')
-  area.querySelectorAll('.slot').forEach((el) => {
-    if (taken.has(el.dataset.t)) return
-    press(el, 'slot-pressed')
-    el.onclick = () => {
-      sel = sel === el.dataset.t ? '' : el.dataset.t
-      area.querySelectorAll('.slot').forEach((s) => s.classList.toggle('slot-on', s.dataset.t === sel))
-      updateCta()
-    }
-  })
-}
-
-function updateCta() {
-  $('cta').classList.toggle('cta-show', !!sel && $('sheet').style.display === 'none')
-  if (sel) {
-    $('ctaLabel').textContent = `${dates[di].label} ${dates[di].weekday}`
-    $('ctaValue').textContent = `${sel} – ${end(sel)}`
-  }
-}
-
-document.querySelectorAll('.seg-item[data-i]').forEach((el) => {
-  press(el, 'seg-pressed')
-  el.onclick = () => {
-    const i = Number(el.dataset.i)
-    if (i === di) return
-    di = i; sel = ''
-    $('ind').style.transform = `translateX(${di * 100}%)`
-    document.querySelectorAll('.seg-item[data-i]').forEach((s, j) => s.classList.toggle('seg-on', j === di))
-    renderSlots(); updateCta()
-  }
-})
-$('ind').style.transform = `translateX(${di * 100}%)`
-
-function openSheet() {
-  $('sName').textContent = $('name').value
-  $('sDate').textContent = `${dates[di].label} ${dates[di].weekday}`
-  $('sTime').textContent = `${sel} – ${end(sel)}`
-  $('sPay').textContent = PAYS[pay]
-  $('confirm').style.display = ''; $('done').style.display = 'none'
-  $('sheet').style.display = ''
-  updateCta()
-  setTimeout(() => $('sheet').classList.add('sheet-open'), 30)
-}
-function closeSheet() {
-  $('sheet').classList.remove('sheet-open')
-  setTimeout(() => { $('sheet').style.display = 'none'; updateCta() }, 500)
-}
-$('book').onclick = openSheet
-$('mask').onclick = closeSheet
-$('later').onclick = closeSheet
-$('submit').onclick = () => {
-  $('submit').innerHTML = '<div class="spinner"></div>'
-  setTimeout(() => {
-    $('submit').textContent = '确认预约'
-    $('dHello').textContent = `到时见，${$('name').value}`
-    $('dTime').textContent = `${dates[di].label} ${dates[di].weekday} ${sel} – ${end(sel)}`
-    $('dPay').textContent = PAYS[pay]
-    $('confirm').style.display = 'none'; $('done').style.display = ''
-  }, 700)
-}
-$('finish').onclick = () => {
-  taken.add(sel)
-  dates[di].booked = true
-  bookings.push({ di, time: sel, name: $('name').value, pay: PAYS[pay] })
-  sel = ''
-  closeSheet(); renderAll()
-  setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 300)
-}
-
-function renderTickets() {
-  $('tickets').innerHTML = bookings.map((b, i) => `
-  <div class="ticket fade-up">
-    <div class="ticket-top"><div class="ticket-brand"><img class="ticket-logo" src="images/logo-icon.png" alt="">Sam Barbershop</div><div class="badge">已预约</div></div>
-    <div class="ticket-date">${dates[b.di].label} · ${dates[b.di].weekday}</div>
-    <div class="ticket-time">${b.time}<span class="ticket-end"> – ${end(b.time)}</span></div>
-    <div class="ticket-name">${b.name} · ${b.pay}付款</div>
-    <div class="ticket-divider"></div>
-    <div class="ticket-addr">100 Town Center Dr, Savannah, GA</div>
-    <div class="ticket-door">Apartment 2308</div>
-    <div class="ticket-actions"><div class="ticket-btn" data-copy="100 Town Center Dr, Savannah, GA, Apartment 2308" data-msg="地址已复制">复制地址</div><div class="ticket-btn ticket-btn-danger" data-i="${i}">取消预约</div></div>
-  </div>`).join('')
-  $('tickets').querySelectorAll('.ticket-btn').forEach((el) => press(el, 'ticket-btn-pressed'))
-  bindCopy($('tickets'))
-  $('tickets').querySelectorAll('.ticket-btn-danger').forEach((el) => el.onclick = () => {
-    // 不用浏览器的 confirm()：很多内嵌浏览器会直接拦掉它并返回“否”
-    showModal({
-      title: '取消这个预约？',
-      content: '取消后这个时间会开放给其他人。',
-      confirmText: '取消预约',
-      cancelText: '保留',
-      onConfirm() {
-        const b = bookings.splice(Number(el.dataset.i), 1)[0]
-        taken.delete(b.time)
-        dates[b.di].booked = false
-        renderAll()
-        showToast('已取消')
-      }
-    })
-  })
-  $('addrRow').style.display = bookings.length ? 'none' : ''
-  $('contactHeader').textContent = bookings.length ? '联系店主' : '地址与联系方式'
-}
-
-function renderSegments() {
-  document.querySelectorAll('.seg-item[data-i]').forEach((el, j) => {
-    el.querySelector('.seg-sub').textContent = dates[j].booked ? '已预约' : dates[j].weekday
-  })
-}
-
-function renderAll() { renderTickets(); renderSegments(); renderSlots(); updateCta() }
-document.querySelectorAll('.btn-primary, .ticket-btn').forEach((el) => press(el, el.classList.contains('ticket-btn') ? 'ticket-btn-pressed' : 'btn-pressed'))
-
-// 模拟 IntersectionObserver 折叠导航栏
-new IntersectionObserver(([e]) => $('nav').classList.toggle('nav-collapsed', !e.isIntersecting), { rootMargin: '-91px 0px 0px 0px' }).observe($('title'))
-
-// 付款方式
-document.querySelectorAll('.seg-item[data-p]').forEach((el) => {
-  press(el, 'seg-pressed')
-  el.onclick = () => {
-    pay = Number(el.dataset.p)
-    $('payInd').style.transform = `translateX(${pay * 100}%)`
-    document.querySelectorAll('.seg-item[data-p]').forEach((s, j) => s.classList.toggle('seg-on', j === pay))
-    $('zelle').classList.toggle('zelle-show', pay === 1)
-  }
-})
-
-// 复制（预览里用浏览器剪贴板；小程序里是 wx.setClipboardData）
-const toast = document.createElement('div')
-toast.className = 'toast'
-document.body.appendChild(toast)
-function showToast(text) {
-  toast.textContent = text
-  toast.classList.add('toast-show')
-  clearTimeout(showToast.t)
-  showToast.t = setTimeout(() => toast.classList.remove('toast-show'), 1500)
-}
-async function copyText(text, msg) {
-  try {
-    await navigator.clipboard.writeText(text)
-  } catch (e) {
-    const ta = document.createElement('textarea')
-    ta.value = text; document.body.appendChild(ta); ta.select()
-    document.execCommand('copy'); ta.remove()
-  }
-  showToast(msg)
-}
-function bindCopy(root) {
-  root.querySelectorAll('[data-copy]').forEach((el) => {
-    if (el.classList.contains('row')) press(el, 'row-pressed')
-    el.onclick = () => copyText(el.dataset.copy, el.dataset.msg)
-  })
-}
-bindCopy(document)
-press($('phoneRow'), 'row-pressed')
-$('phoneRow').onclick = () => { location.href = 'tel:+19127038740' }
-
-// 模拟 wx.showModal 的 iOS 风格弹窗
-function showModal({ title, content, confirmText, cancelText, onConfirm }) {
-  const root = document.createElement('div')
-  root.className = 'alert-root'
-  root.innerHTML = `<div class="alert">
-    <div class="alert-body"><div class="alert-title"></div><div class="alert-content"></div></div>
-    <div class="alert-actions"><div class="alert-btn alert-cancel"></div><div class="alert-btn alert-danger"></div></div>
-  </div>`
-  root.querySelector('.alert-title').textContent = title
-  root.querySelector('.alert-content').textContent = content
-  root.querySelector('.alert-cancel').textContent = cancelText
-  root.querySelector('.alert-danger').textContent = confirmText
-  document.body.appendChild(root)
-  requestAnimationFrame(() => root.classList.add('alert-open'))
-  const close = () => { root.classList.remove('alert-open'); setTimeout(() => root.remove(), 250) }
-  root.querySelector('.alert-cancel').onclick = close
-  root.querySelector('.alert-danger').onclick = () => { close(); onConfirm() }
-}
-
-renderAll()
-</script>
+<script src="config.js"></script>
+<script src="core.js"></script>
+<script src="demo-store.js"></script>
+<script src="client.js"></script>
+<script src="index.js"></script>
 </body></html>
