@@ -224,32 +224,15 @@ body {
 /* ========== 大标题 ========== */
 .page { padding-bottom: 130px; }
 .hero { padding: 6px 20px 4px; }
-/* 品牌标志：理发店转灯的红白蓝斜纹做外圈，中间是字母 S */
-.logo {
-  width: 56px;
-  height: 56px;
-  margin-bottom: 10px;
-  padding: 5.5px;
-  box-sizing: border-box;
+/* 品牌标志：Sam Barbershop 转灯外圈徽章（brand/export 里导出的图片，白底，深色模式下也保持白底圆形） */
+.logo-badge {
+  display: block;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 8px;
   border-radius: 50%;
-  background: repeating-linear-gradient(135deg, var(--pole-red) 0 6px, #ffffff 6px 12px, var(--pole-blue) 12px 18px, #ffffff 18px 24px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-}
-.logo-inner {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--primary);
-  color: var(--on-primary);
-  /* 中间和斜纹之间留一圈白边 */
-  box-shadow: 0 0 0 2px #ffffff;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 23px;
-  font-weight: 700;
-  font-style: italic;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 .large-title {
   font-size: 34px;
@@ -289,19 +272,11 @@ body {
   color: rgba(255, 255, 255, 0.75);
 }
 .ticket-logo {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   margin-right: 7px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff;
-  color: #1c1c1e;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 12px;
-  font-style: italic;
-  letter-spacing: 0;
+  flex-shrink: 0;
 }
 .badge {
   padding: 3px 9px;
@@ -693,7 +668,7 @@ body { margin: 0; } * { box-sizing: border-box; } input { border: 0; background:
 
 <div class="page" style="padding-top: 91px">
   <div class="hero">
-    <div class="logo fade-up"><div class="logo-inner">S</div></div>
+    <img class="logo-badge fade-up" src="images/logo-badge.png" alt="Sam Barbershop">
     <div class="large-title fade-up" style="animation-delay: 30ms" id="title">Sam Barbershop</div>
     <div class="subtitle fade-up" style="animation-delay: 60ms">每周日 · 下午 2:00 – 晚上 11:00</div>
   </div>
@@ -902,7 +877,7 @@ $('finish').onclick = () => {
 function renderTickets() {
   $('tickets').innerHTML = bookings.map((b, i) => `
   <div class="ticket fade-up">
-    <div class="ticket-top"><div class="ticket-brand"><div class="ticket-logo">S</div>Sam Barbershop</div><div class="badge">已预约</div></div>
+    <div class="ticket-top"><div class="ticket-brand"><img class="ticket-logo" src="images/logo-icon.png" alt="">Sam Barbershop</div><div class="badge">已预约</div></div>
     <div class="ticket-date">${dates[b.di].label} · ${dates[b.di].weekday}</div>
     <div class="ticket-time">${b.time}<span class="ticket-end"> – ${end(b.time)}</span></div>
     <div class="ticket-name">${b.name} · ${b.pay}付款</div>
