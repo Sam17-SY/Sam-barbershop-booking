@@ -17,7 +17,9 @@ var I18N = {
     findTitle: '查找我的预约', findBody: '输入预约时留的手机号', find: '查找', found: '找到 {n} 个预约', notFound: '没有找到这个手机号的预约',
     cancel: '取消', ok: '确定', copyFail: '复制失败', copyManual: '请手动记下：{text}',
     demo: '演示模式 · 数据只保存在这台设备上', langBtn: 'EN', pageTitle: 'Sam Barbershop · 在线预约',
-    afternoon: '下午', evening: '晚上', morning: '上午'
+    afternoon: '下午', evening: '晚上', morning: '上午',
+    email: '邮箱（选填）', emailNote: '预约有变动时通知你', emailPh: '例如 name@gmail.com', needEmail: '邮箱格式不对',
+    ownerCancelled: '你的预约已被店主取消', ownerCancelledSub: '{when}。抱歉给你带来不便，可以在下面重新选一个时间。', gotIt: '知道了'
   },
   en: {
     contactTitle: 'Address & contact', contactOwner: 'Contact the barber', wechat: 'WeChat', phoneLabel: 'Phone', copy: 'Copy', call: 'Call',
@@ -35,7 +37,9 @@ var I18N = {
     findTitle: 'Find my booking', findBody: 'Enter the phone number you booked with', find: 'Find', found: 'Found {n} booking(s)', notFound: 'No bookings for this number',
     cancel: 'Cancel', ok: 'OK', copyFail: 'Couldn’t copy', copyManual: 'Please write it down: {text}',
     demo: 'Demo mode · data stays on this device', langBtn: '中文', pageTitle: 'Sam Barbershop · Book a haircut',
-    afternoon: 'Afternoon', evening: 'Evening', morning: 'Morning'
+    afternoon: 'Afternoon', evening: 'Evening', morning: 'Morning',
+    email: 'Email (optional)', emailNote: 'We’ll tell you if anything changes', emailPh: 'e.g. name@gmail.com', needEmail: 'Please check your email address',
+    ownerCancelled: 'Your booking was cancelled by the barber', ownerCancelledSub: '{when}. Sorry about that — please pick a new time below.', gotIt: 'Got it'
   }
 }
 
@@ -53,7 +57,8 @@ var I18N_ERRORS = {
   '这个预约已经取消了，请刷新页面': 'This booking was already cancelled — please refresh',
   '手机号和预约时留的不一致': 'That phone number doesn’t match the booking',
   '预约时间已经到了，不能再取消，请直接联系店主': 'It’s past the booking time — please contact the barber directly',
-  '网络不太好，请稍后再试': 'Connection problem — please try again'
+  '网络不太好，请稍后再试': 'Connection problem — please try again',
+  '邮箱格式不对': 'Please check your email address'
 }
 
 var LANG = (function () {

@@ -26,13 +26,18 @@ var SAM_DEFAULT_CONFIG = {
   daysAhead: 14,
   maxDates: 6,
   // 每次理发的价格（美元），预约时记在这条预约上；小费由店主在后台加
-  price: 35
+  price: 35,
+  // 预约网页的网址（发给客人的邮件和短信里用）
+  siteUrl: 'https://sam17-sy.github.io/Sam-barbershop-booking/'
 }
 
 // store 需要提供：listBookings() addBooking(b) updateBooking(id, patch) getSettings() saveSettings(s)
-//               now() → { date: 'YYYY-MM-DD', minutes }（店铺当地时间） lock(fn) sendMail(subject, text) checkPassword(pw)
+//               now() → { date: 'YYYY-MM-DD', minutes }（店铺当地时间） lock(fn) checkPassword(pw)
+//               sendMail(subject, text, to)：不传 to 时发给店主；传了就发给这位客人
 function createSamBackend(cfg, store) {
   var WEEKDAYS = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  var WEEKDAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  var MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   var PAYMENTS = { cash: '现金', zelle: 'Zelle' }
 
   function pad(n) { return (n < 10 ? '0' : '') + n }
@@ -166,6 +171,7 @@ function createSamBackend(cfg, store) {
     var o = publicBooking(b)
     o.phone = b.phone
     o.tip = Number(b.tip) || 0
+    o.email = b.email || ''
     return o
   }
 
@@ -177,6 +183,37 @@ function createSamBackend(cfg, store) {
       '付款方式：' + (PAYMENTS[b.payment] || '未选择') + '（' + money(Number(b.price) || 0) + '）',
       '地址：' + cfg.shop.address + ' ' + cfg.shop.doorNumber
     ].join('\n')
+  }
+
+  // 给客人的邮件（中英双语）：booked 预约成功 / cancelled 店主取消 / moved 店主改了时间
+  function enWhen(b) {
+    var p = b.date.split('-').map(Number), m = toMinutes(b.time)
+    var h = Math.floor(m / 60) % 12 || 12
+    return WEEKDAYS_EN[weekdayIndex(b.date)] + ', ' + MONTHS_EN[p[1] - 1] + ' ' + p[2] + ' at ' + h + ':' + pad(m % 60) + ' ' + (m < 720 ? 'AM' : 'PM')
+  }
+  function mailCustomer(b, kind, old) {
+    if (!b.email) return false
+    var zh = label(b.date) + ' ' + b.time, en = enWhen(b)
+    var addr = cfg.shop.address + ', ' + cfg.shop.doorNumber
+    var site = cfg.siteUrl || ''
+    var t = kind === 'booked'
+      ? ['预约成功 / You’re booked', '你好 ' + b.name + '，你在 ' + cfg.shop.name + ' 的理发预约成功了：' + zh + '。\n地址：' + addr,
+        'Hi ' + b.name + ', your haircut at ' + cfg.shop.name + ' is booked for ' + en + '.\nAddress: ' + addr]
+      : kind === 'cancelled'
+      ? ['预约已取消 / Booking cancelled', '你好 ' + b.name + '，抱歉，你 ' + zh + ' 的理发预约被店主取消了。' + (site ? '\n可以重新预约：' + site : ''),
+        'Hi ' + b.name + ', sorry — your haircut on ' + en + ' was cancelled by the barber.' + (site ? '\nBook a new time: ' + site : '')]
+      : ['预约时间有变 / Your booking time changed', '你好 ' + b.name + '，店主把你的理发预约从 ' + label(old.date) + ' ' + old.time + ' 改到了 ' + zh + '。\n地址：' + addr,
+        'Hi ' + b.name + ', the barber moved your haircut from ' + enWhen(old) + ' to ' + en + '.\nAddress: ' + addr]
+    var footer = '\n\n有问题请联系店主 / Questions? Contact the barber: ' + cfg.shop.phone + '（微信 WeChat ' + cfg.shop.wechat + '）'
+    store.sendMail('[' + cfg.shop.name + '] ' + t[0], t[1] + '\n\n' + t[2] + footer, b.email)
+    return true
+  }
+
+  function cleanEmail(e) {
+    e = String(e || '').trim()
+    if (!e) return ''
+    if (e.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw new Error('邮箱格式不对')
+    return e
   }
 
   function requireAdmin(data) {
@@ -214,6 +251,10 @@ function createSamBackend(cfg, store) {
       var phone = normPhone(data.phone)
       var today = store.now().date
       var mine = phone ? active.filter(function (b) { return b.phone === phone && b.date >= today }) : []
+      // 被店主取消、还没到日子的预约：顾客页提醒一下
+      var cancelled = phone ? store.listBookings().filter(function (b) {
+        return b.status === 'cancelled' && b.cancelledBy === 'owner' && b.phone === phone && b.date >= today
+      }) : []
       return {
         shop: cfg.shop,
         slotMinutes: s.slotMinutes,
@@ -229,7 +270,8 @@ function createSamBackend(cfg, store) {
             slots: slots.map(function (time) { return { time: time, available: slotState(s, active, date, time) === 'free' } })
           }
         }),
-        myBookings: mine.sort(function (a, b) { return (a.date + a.time) < (b.date + b.time) ? -1 : 1 }).map(publicBooking)
+        myBookings: mine.sort(function (a, b) { return (a.date + a.time) < (b.date + b.time) ? -1 : 1 }).map(publicBooking),
+        cancelledByOwner: cancelled.map(publicBooking)
       }
     },
 
@@ -239,6 +281,7 @@ function createSamBackend(cfg, store) {
       var phone = normPhone(data.phone)
       if (phone.length < 11 || phone.length > 15) throw new Error('请填写正确的手机号')
       if (!PAYMENTS[data.payment]) throw new Error('请选择付款方式')
+      var email = cleanEmail(data.email)
       var date = data.date, time = data.time
       var s = getSettings()
       if (openDates(s, false).indexOf(date) < 0) throw new Error('这一天不能预约')
@@ -255,12 +298,14 @@ function createSamBackend(cfg, store) {
         var b = {
           id: date + '_' + time.replace(':', '') + '_' + Math.random().toString(36).slice(2, 7),
           date: date, time: time, name: name, phone: phone, payment: data.payment,
-          price: cfg.price, tip: 0, status: 'booked', createdAt: new Date().toISOString(), cancelledAt: '', minutes: s.slotMinutes
+          price: cfg.price, tip: 0, status: 'booked', createdAt: new Date().toISOString(), cancelledAt: '', minutes: s.slotMinutes,
+          email: email, cancelledBy: ''
         }
         store.addBooking(b)
         return b
       })
       store.sendMail('[' + cfg.shop.name + '] 新预约：' + name + ' ' + date + ' ' + time + '（' + PAYMENTS[data.payment] + '）', bookingText(booking))
+      mailCustomer(booking, 'booked')
       return { booking: publicBooking(booking), shop: cfg.shop }
     },
 
@@ -271,7 +316,7 @@ function createSamBackend(cfg, store) {
       if (!b) throw new Error('这个预约已经取消了，请刷新页面')
       if (b.phone !== phone) throw new Error('手机号和预约时留的不一致')
       if (isPast(b.date, b.time)) throw new Error('预约时间已经到了，不能再取消，请直接联系店主')
-      store.updateBooking(b.id, { status: 'cancelled', cancelledAt: new Date().toISOString() })
+      store.updateBooking(b.id, { status: 'cancelled', cancelledAt: new Date().toISOString(), cancelledBy: 'customer' })
       store.sendMail('[' + cfg.shop.name + '] 预约已取消：' + b.name + ' ' + b.date + ' ' + b.time, bookingText(b))
       return { ok: true }
     },
@@ -314,9 +359,9 @@ function createSamBackend(cfg, store) {
       requireAdmin(data)
       var b = findActive(data.id)
       if (!b) throw new Error('这个预约已经取消了，请刷新')
-      store.updateBooking(b.id, { status: 'cancelled', cancelledAt: new Date().toISOString() })
+      store.updateBooking(b.id, { status: 'cancelled', cancelledAt: new Date().toISOString(), cancelledBy: 'owner' })
       store.sendMail('[' + cfg.shop.name + '] 预约已取消（店主操作）：' + b.name + ' ' + b.date + ' ' + b.time, bookingText(b))
-      return { ok: true }
+      return { ok: true, emailed: mailCustomer(b, 'cancelled') }
     },
 
     // 店主帮客人改时间（不用先取消再重新约）
@@ -339,8 +384,8 @@ function createSamBackend(cfg, store) {
         return { old: b, now: Object.assign({}, b, { date: date, time: time, minutes: s.slotMinutes }) }
       })
       store.sendMail('[' + cfg.shop.name + '] 预约改时间：' + moved.old.name + ' ' + moved.old.date + ' ' + moved.old.time + ' → ' + date + ' ' + time,
-        '原来：' + moved.old.date + ' ' + moved.old.time + '\n现在：\n' + bookingText(moved.now) + '\n\n记得通知客人新的时间。')
-      return { booking: adminBooking(moved.now) }
+        '原来：' + moved.old.date + ' ' + moved.old.time + '\n现在：\n' + bookingText(moved.now))
+      return { booking: adminBooking(moved.now), emailed: mailCustomer(moved.now, 'moved', moved.old) }
     },
 
     setTip: function (data) {

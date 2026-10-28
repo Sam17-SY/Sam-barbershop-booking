@@ -685,7 +685,13 @@ a { -webkit-tap-highlight-color: transparent; }
 /* 店主后台：客户名下面一行手机号（点了直接拨打） */
 .who-col { min-width: 0; }
 .who-line { display: flex; align-items: center; min-width: 0; }
-.who-phone { margin-top: 2px; font-size: 12px; color: var(--secondary); font-variant-numeric: tabular-nums; }
+.who-phone { margin-top: 2px; font-size: 12px; color: var(--secondary); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* 顾客页：预约被店主取消的提醒 */
+.notice { margin: 0 16px 16px; padding: 16px; border-radius: 16px; background: rgba(255, 59, 48, .08); border: .5px solid rgba(255, 59, 48, .25); }
+.notice-title { font-size: 17px; font-weight: 600; color: var(--danger); }
+.notice-sub { margin-top: 6px; font-size: 15px; line-height: 1.45; color: var(--label); }
+.notice-btn { display: inline-block; margin-top: 12px; padding: 6px 16px; border-radius: 999px; background: var(--fill); font-size: 15px; font-weight: 600; cursor: pointer; user-select: none; }
 .login-btn { margin: 24px 16px 0; }
 .logout { margin-top: 12px; color: var(--danger); }
 
@@ -744,6 +750,7 @@ a { -webkit-tap-highlight-color: transparent; }
   </div>
 
   <div id="content" style="display:none">
+    <div id="notices"></div>
     <div id="tickets"></div>
 
     <div class="section-header" id="contactHeader" data-i18n="contactTitle"></div>
@@ -770,6 +777,9 @@ a { -webkit-tap-highlight-color: transparent; }
 
     <div class="section-header"><span data-i18n="phone"></span><span class="section-note" data-i18n="phoneNote"></span></div>
     <div class="group"><div class="row"><input class="field" id="phone" type="tel" inputmode="tel" data-i18n-ph="phonePh" autocomplete="tel"></div></div>
+
+    <div class="section-header"><span data-i18n="email"></span><span class="section-note" data-i18n="emailNote"></span></div>
+    <div class="group"><div class="row"><input class="field" id="email" type="email" inputmode="email" data-i18n-ph="emailPh" maxlength="100" autocomplete="email"></div></div>
 
     <div class="section-header" data-i18n="payment"></div>
     <div class="segmented" id="paySeg">

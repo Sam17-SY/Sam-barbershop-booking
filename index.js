@@ -39,7 +39,25 @@ function renderAll() {
   $('phoneRow').href = 'tel:' + shop.phone.replace(/[^\d+]/g, '')
   $('zelleAcct').textContent = shop.zelle
   $('footerBrand').textContent = shop.name + ' · ' + shop.city
-  renderTickets(); renderDates(); renderSlots(); updateCta()
+  renderNotices(); renderTickets(); renderDates(); renderSlots(); updateCta()
+}
+
+// 被店主取消的预约：提醒一次，点“知道了”就不再显示
+function renderNotices() {
+  var seen = memory.get('seen-cancel').split(',')
+  var list = (st.data.cancelledByOwner || []).filter(function (b) { return seen.indexOf(b.id) < 0 })
+  $('notices').innerHTML = list.map(function (b) {
+    return '<div class="notice fade-up"><div class="notice-title">' + t('ownerCancelled') + '</div>' +
+      '<div class="notice-sub">' + t('ownerCancelledSub', { when: dayText(b) + ' ' + fmtTime(b.time) }) + '</div>' +
+      '<div class="notice-btn" data-id="' + b.id + '">' + t('gotIt') + '</div></div>'
+  }).join('')
+  $('notices').querySelectorAll('.notice-btn').forEach(function (el) {
+    press(el, 'ticket-btn-pressed')
+    el.onclick = function () {
+      memory.set('seen-cancel', seen.concat(el.dataset.id).filter(Boolean).slice(-20).join(','))
+      renderNotices()
+    }
+  })
 }
 
 function renderTickets() {
@@ -161,6 +179,8 @@ function openSheet() {
   var name = $('name').value.trim(), phone = $('phone').value.replace(/\D/g, '')
   if (!name) { showToast(t('needName')); $('name').focus(); return }
   if (phone.length < 10) { showToast(t('needPhone')); $('phone').focus(); return }
+  var email = $('email').value.trim()
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast(t('needEmail')); $('email').focus(); return }
   var day = st.data.dates[st.di], shop = st.data.shop
   $('sName').textContent = name
   $('sPhone').textContent = $('phone').value.trim()
@@ -182,10 +202,10 @@ function closeSheet() {
 function submit() {
   if (st.submitting) return
   st.submitting = true
-  var day = st.data.dates[st.di], name = $('name').value.trim(), phone = $('phone').value.trim()
+  var day = st.data.dates[st.di], name = $('name').value.trim(), phone = $('phone').value.trim(), email = $('email').value.trim()
   $('submit').innerHTML = '<div class="spinner"></div>'
-  api('book', { name: name, phone: phone, payment: PAYS[st.pay].key, date: day.date, time: st.sel }).then(function (res) {
-    memory.set('name', name); memory.set('phone', phone); memory.set('payment', PAYS[st.pay].key)
+  api('book', { name: name, phone: phone, email: email, payment: PAYS[st.pay].key, date: day.date, time: st.sel }).then(function (res) {
+    memory.set('name', name); memory.set('phone', phone); memory.set('email', email); memory.set('payment', PAYS[st.pay].key)
     var b = res.booking, shop = st.data.shop
     $('dHello').textContent = t('hello', { name: b.name })
     $('dTime').textContent = dayText(b) + ' ' + rangeText(b.time, b.minutes || st.data.slotMinutes)
@@ -229,6 +249,7 @@ $('langBtn').onclick = function () { setLang(LANG === 'en' ? 'zh' : 'en') }
 
 $('name').value = memory.get('name')
 $('phone').value = memory.get('phone')
+$('email').value = memory.get('email')
 st.pay = Math.max(0, PAYS.findIndex(function (p) { return p.key === memory.get('payment') }))
 
 document.querySelectorAll('#paySeg .seg-item').forEach(function (el) {

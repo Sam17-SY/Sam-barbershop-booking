@@ -67,7 +67,7 @@ function render() {
         '<div class="group">' + g.items.map(function (b) {
           return '<div class="row customer">' +
             '<div class="when' + (ad.scope === 0 ? ' when-edit' : '') + '" data-id="' + b.id + '"><div class="time">' + b.time + '</div><div class="end">' + addMinutes(b.time, b.minutes) + '</div></div>' +
-            '<a class="who" href="tel:+' + b.phone + '" style="color:inherit;text-decoration:none"><div class="who-col"><div class="who-line"><div class="name">' + esc(b.name) + '</div><div class="pay pay-' + b.payment + '">' + PAY[b.payment] + '</div></div><div class="who-phone">' + prettyPhone(b.phone) + '</div></div></a>' +
+            '<a class="who" href="tel:+' + b.phone + '" style="color:inherit;text-decoration:none"><div class="who-col"><div class="who-line"><div class="name">' + esc(b.name) + '</div><div class="pay pay-' + b.payment + '">' + PAY[b.payment] + '</div></div><div class="who-phone">' + prettyPhone(b.phone) + (b.email ? ' · ' + esc(b.email) : '') + '</div></div></a>' +
             '<div class="amount" data-id="' + b.id + '"><div class="amount-num">' + money(amt(b)) + '</div>' + (b.tip ? '<div class="amount-tip">小费 ' + money(b.tip) + '</div>' : '<div class="amount-add">+ 小费</div>') + '</div>' +
             (ad.scope === 0 ? '<div class="del" data-id="' + b.id + '">取消</div>' : '') +
             '</div>'
@@ -86,7 +86,12 @@ function render() {
       showModal({
         title: '取消 ' + b.name + ' 的预约？', content: '取消后这个时间会重新开放。', confirmText: '取消预约', cancelText: '保留', danger: true,
         onConfirm: function () {
-          api('adminCancel', { password: ad.pw, id: b.id }).then(function () { showToast('已取消'); load() }).catch(function (err) { showToast(err.message) })
+          api('adminCancel', { password: ad.pw, id: b.id }).then(function (res) {
+            load()
+            offerSms(b, '已取消 ' + b.name + ' 的预约', res.emailed,
+              'Sam Barbershop：抱歉，你 ' + dateLabel(b.date) + '（' + b.weekday + '）' + b.time + ' 的理发预约已取消。可以重新预约：' + siteUrl() +
+              '\n\nSorry, your haircut at Sam Barbershop on ' + enWhen(b.date, b.time) + ' has been cancelled. Book a new time: ' + siteUrl())
+          }).catch(function (err) { showToast(err.message) })
         }
       })
     }
@@ -183,13 +188,34 @@ function moveBooking(b) {
           title: dateLabel(day.date) + ' ' + day.weekday + ' 还空着的时段', items: free.map(function (s) { return s.time }),
           onPick: function (j) {
             var t = free[j].time
-            api('adminMove', { password: ad.pw, id: b.id, date: day.date, time: t }).then(function () {
-              showToast('已改到 ' + dateLabel(day.date) + ' ' + t + '，记得通知 ' + b.name); load()
+            api('adminMove', { password: ad.pw, id: b.id, date: day.date, time: t }).then(function (res) {
+              load()
+              offerSms(b, '已把 ' + b.name + ' 改到 ' + dateLabel(day.date) + ' ' + t, res.emailed,
+                'Sam Barbershop：你的理发预约改到了 ' + dateLabel(day.date) + '（' + day.weekday + '）' + t + '。有问题可以回复这条短信。' +
+                '\n\nYour haircut at Sam Barbershop has been moved to ' + enWhen(day.date, t) + '. Reply here if that doesn’t work for you.')
             }).catch(function (err) { showToast(err.message) })
           }
         })
       }).catch(function (err) { showToast(err.message) })
     }
+  })
+}
+
+// ---------- 通知客人：取消或改时间后，一键打开手机短信，内容（中英双语）已经写好 ----------
+var EN_WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+var EN_MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+function enWhen(date, time) {
+  var p = date.split('-').map(Number), h = Number(time.slice(0, 2))
+  return EN_WD[new Date(date + 'T00:00:00Z').getUTCDay()] + ', ' + EN_MON[p[1] - 1] + ' ' + p[2] + ' at ' + (h % 12 || 12) + ':' + time.slice(3) + ' ' + (h < 12 ? 'AM' : 'PM')
+}
+function siteUrl() { return SAM_DEMO ? location.href.replace(/admin\.html.*$/, '') : SAM_DEFAULT_CONFIG.siteUrl }
+
+function offerSms(b, title, emailed, text) {
+  showModal({
+    title: title,
+    content: (emailed ? '已经自动发邮件通知了 ' + b.name + '。' : b.name + ' 没有留邮箱，收不到自动通知。') + '要再发一条短信吗？内容已经写好，你只需要按发送。',
+    confirmText: '发短信', cancelText: '不用了',
+    onConfirm: function () { location.href = 'sms:+' + b.phone + '?&body=' + encodeURIComponent(text) }
   })
 }
 
