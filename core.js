@@ -205,8 +205,65 @@ function createSamBackend(cfg, store) {
       : ['预约时间有变 / Your booking time changed', '你好 ' + b.name + '，店主把你的理发预约从 ' + label(old.date) + ' ' + old.time + ' 改到了 ' + zh + '。\n地址：' + addr,
         'Hi ' + b.name + ', the barber moved your haircut from ' + enWhen(old) + ' to ' + en + '.\nAddress: ' + addr]
     var footer = '\n\n有问题请联系店主 / Questions? Contact the barber: ' + cfg.shop.phone + '（微信 WeChat ' + cfg.shop.wechat + '）'
-    store.sendMail('[' + cfg.shop.name + '] ' + t[0], t[1] + '\n\n' + t[2] + footer, b.email)
+    store.sendMail('[' + cfg.shop.name + '] ' + t[0], t[1] + '\n\n' + t[2] + footer, b.email, mailHtml(b, kind, old))
     return true
+  }
+
+  // 邮件的网页版排版（手机邮箱里显示成一张卡片；看不了网页格式的邮箱会显示上面的纯文字）
+  function enDate(date) { var p = date.split('-').map(Number); return WEEKDAYS_EN[weekdayIndex(date)] + ', ' + MONTHS_EN[p[1] - 1] + ' ' + p[2] }
+  function enTime(hhmm) { var m = toMinutes(hhmm); return (Math.floor(m / 60) % 12 || 12) + ':' + pad(m % 60) + ' ' + (m < 720 ? 'AM' : 'PM') }
+  function h(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] }) }
+
+  function mailHtml(b, kind, old) {
+    var shop = cfg.shop, site = cfg.siteUrl || ''
+    var FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',Helvetica,Arial,sans-serif"
+    var INK = '#1c2541', MUTED = '#6b7385', BLUE = '#2b59c3', RED = '#d0312d', SOFT = '#f4f6fb'
+    var end = fromMinutes(toMinutes(b.time) + minutesOf(b))
+    var head = {
+      booked: { color: BLUE, zh: '预约成功', en: 'You’re booked', hiZh: '你好 ' + h(b.name) + '，到时见！', hiEn: 'Hi ' + h(b.name) + ', see you soon!' },
+      cancelled: { color: RED, zh: '预约已取消', en: 'Booking cancelled', hiZh: '你好 ' + h(b.name) + '，抱歉，预约被店主取消了。', hiEn: 'Hi ' + h(b.name) + ', sorry — the barber had to cancel this booking.' },
+      moved: { color: BLUE, zh: '预约时间有变', en: 'New time for your haircut', hiZh: '你好 ' + h(b.name) + '，店主帮你换了一个时间。', hiEn: 'Hi ' + h(b.name) + ', the barber moved your booking.' }
+    }[kind]
+    var gone = kind === 'cancelled' ? 'text-decoration:line-through;color:' + MUTED + ';' : ''
+
+    function row(zhLabel, enLabel, main, sub, first) {
+      return '<tr><td style="padding:14px 0;' + (first ? '' : 'border-top:1px solid #e3e7f0;') + 'vertical-align:top;width:72px;font-size:13px;line-height:18px;color:' + MUTED + ';">' + zhLabel + '<br>' + enLabel + '</td>' +
+        '<td style="padding:14px 0;' + (first ? '' : 'border-top:1px solid #e3e7f0;') + 'vertical-align:top;">' +
+        '<div style="font-size:17px;line-height:24px;font-weight:600;color:' + INK + ';' + gone + '">' + main + '</div>' +
+        (sub ? '<div style="font-size:14px;line-height:20px;color:' + MUTED + ';' + gone + '">' + sub + '</div>' : '') + '</td></tr>'
+    }
+
+    var zhDate = function (d) { var p = d.split('-'); return Number(p[1]) + '月' + Number(p[2]) + '日 ' + weekdayOf(d) }
+    var rows = row('日期', 'Date', zhDate(b.date), enDate(b.date), true) +
+      row('时间', 'Time', b.time + ' – ' + end, enTime(b.time) + ' – ' + enTime(end))
+    if (kind === 'moved') rows += row('原来', 'Was', '<span style="text-decoration:line-through;color:' + MUTED + ';font-weight:400;">' + zhDate(old.date) + ' ' + old.time + '</span>', '<span style="text-decoration:line-through;">' + enDate(old.date) + ' ' + enTime(old.time) + '</span>')
+    if (kind !== 'cancelled') {
+      rows += row('付款', 'Payment', (PAYMENTS[b.payment] || '') + ' · ' + money(Number(b.price) || 0), b.payment === 'zelle' ? 'Zelle ' + h(shop.zelle) : 'Cash')
+      rows += row('地址', 'Address', '<a href="https://maps.google.com/?q=' + encodeURIComponent(shop.address) + '" style="color:' + INK + ';text-decoration:none;">' + h(shop.address) + '</a>', h(shop.doorNumber))
+    }
+
+    var btn = site ? '<tr><td align="center" style="padding:8px 28px 28px;"><a href="' + h(site) + '" style="display:inline-block;padding:14px 32px;border-radius:999px;background:' + INK + ';color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;">' +
+      (kind === 'cancelled' ? '重新预约 · Book again' : '查看我的预约 · View booking') + '</a></td></tr>' : ''
+
+    return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="format-detection" content="telephone=no,date=no,address=no"></head>' +
+      '<body style="margin:0;padding:0;background:' + SOFT + ';">' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:' + SOFT + ';font-family:' + FONT + ';"><tr><td align="center" style="padding:24px 12px;">' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:20px;overflow:hidden;">' +
+      // 顶部理发店灯柱条纹
+      '<tr><td style="height:8px;line-height:8px;font-size:0;background:' + BLUE + ';background-image:repeating-linear-gradient(135deg,' + RED + ' 0 14px,#ffffff 14px 28px,' + BLUE + ' 28px 42px,#ffffff 42px 56px);">&nbsp;</td></tr>' +
+      '<tr><td align="center" style="padding:28px 28px 4px;"><img src="' + h(site) + 'images/logo-badge.png" width="128" height="128" alt="' + h(shop.name) + '" style="display:block;width:128px;height:128px;border:0;"></td></tr>' +
+      '<tr><td align="center" style="padding:8px 28px 0;"><div style="font-size:26px;line-height:34px;font-weight:700;color:' + head.color + ';">' + head.zh + '</div>' +
+      '<div style="font-size:15px;line-height:22px;font-weight:600;letter-spacing:.5px;color:' + head.color + ';">' + head.en + '</div></td></tr>' +
+      '<tr><td align="center" style="padding:16px 28px 20px;font-size:15px;line-height:22px;color:' + INK + ';">' + head.hiZh + '<br><span style="color:' + MUTED + ';">' + head.hiEn + '</span></td></tr>' +
+      '<tr><td style="padding:0 20px 20px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:' + SOFT + ';border-radius:14px;"><tr><td style="padding:2px 18px;">' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">' + rows + '</table></td></tr></table></td></tr>' +
+      btn +
+      '<tr><td align="center" style="padding:18px 28px 24px;border-top:1px solid #e3e7f0;font-size:13px;line-height:20px;color:' + MUTED + ';">' +
+      '有问题请联系店主 · Questions? Contact the barber<br>' +
+      '<a href="tel:' + shop.phone.replace(/[^\d+]/g, '') + '" style="color:' + BLUE + ';text-decoration:none;font-weight:600;">' + h(shop.phone) + '</a>' +
+      ' &nbsp;·&nbsp; 微信 WeChat <span style="color:' + INK + ';font-weight:600;">' + h(shop.wechat) + '</span><br>' +
+      '<span style="color:#9aa1b1;">' + h(shop.name) + ' · ' + h(shop.city) + '</span></td></tr>' +
+      '</table></td></tr></table></body></html>'
   }
 
   function cleanEmail(e) {

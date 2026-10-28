@@ -58,7 +58,10 @@ function createDemoStore(cfg) {
     saveSettings: function (s) { state.settings = s; write() },
     now: now,
     lock: function (fn) { return fn() },
-    sendMail: function (subject, text, to) { console.info('[演示模式] 本来会发邮件给' + (to || '店主') + '：', subject, '\n' + text) },
+    sendMail: function (subject, text, to, html) {
+      console.info('[演示模式] 本来会发邮件给' + (to || '店主') + '：', subject, '\n' + text)
+      if (html) window.samLastMailHtml = html
+    },
     checkPassword: function (pw) { return String(pw || '') === '1234' },
     reset: function () { state = seed(); write() }
   }
