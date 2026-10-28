@@ -9,7 +9,7 @@ function api(action, data) {
   if (SAM_DEMO) {
     return new Promise(function (resolve, reject) {
       setTimeout(function () {
-        try { resolve(JSON.parse(JSON.stringify(samDemoBackend.handle(action, data)))) } catch (e) { reject(e) }
+        try { resolve(JSON.parse(JSON.stringify(samDemoBackend.handle(action, data)))) } catch (e) { reject(new Error(trError(e.message))) }
       }, 250)
     })
   }
@@ -19,11 +19,10 @@ function api(action, data) {
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify({ action: action, data: data || {} })
   }).then(function (r) { return r.json() }).then(function (res) {
-    if (res && res.error) throw new Error(res.error)
+    if (res && res.error) throw new Error(trError(res.error))
     return res
-  }, function (err) {
-    if (err instanceof Error && !/fetch|network/i.test(err.message)) throw err
-    throw new Error('网络不太好，请稍后再试')
+  }, function () {
+    throw new Error(trError('网络不太好，请稍后再试'))
   })
 }
 
@@ -64,7 +63,7 @@ function showToast(text) {
 }
 
 function copyText(text, msg) {
-  var done = function () { showToast(msg || '已复制') }
+  var done = function () { showToast(msg || t('copied')) }
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(text).then(done, fallback)
   } else fallback()
@@ -72,7 +71,7 @@ function copyText(text, msg) {
     var ta = document.createElement('textarea')
     ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'
     document.body.appendChild(ta); ta.select()
-    try { document.execCommand('copy'); done() } catch (e) { showModal({ title: '复制失败', content: '请手动记下：' + text, confirmText: '好', single: true }) }
+    try { document.execCommand('copy'); done() } catch (e) { showModal({ title: t('copyFail'), content: t('copyManual', { text: text }), confirmText: t('ok'), single: true }) }
     ta.remove()
   }
 }
@@ -96,8 +95,8 @@ function showModal(o) {
     body.appendChild(input)
   } else body.textContent = o.content || ''
   var cancel = root.querySelector('.alert-cancel'), ok = root.querySelector('.alert-ok')
-  cancel.textContent = o.cancelText || '取消'
-  ok.textContent = o.confirmText || '确定'
+  cancel.textContent = o.cancelText || t('cancel')
+  ok.textContent = o.confirmText || t('ok')
   if (o.danger) ok.classList.add('alert-danger')
   if (o.single) cancel.remove()
   document.body.appendChild(root)
@@ -192,6 +191,6 @@ function showDemoBanner(extra) {
   if (!SAM_DEMO) return
   var bar = document.createElement('div')
   bar.className = 'demo-banner'
-  bar.textContent = '演示模式 · 数据只保存在这台设备上' + (extra || '')
+  bar.textContent = t('demo') + (extra || '')
   document.body.appendChild(bar)
 }

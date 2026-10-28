@@ -1,9 +1,17 @@
-// 顾客预约页
-var PAYS = [{ key: 'cash', label: '现金' }, { key: 'zelle', label: 'Zelle' }]
+// 顾客预约页（中英文切换见 i18n.js）
+var PAYS = [{ key: 'cash' }, { key: 'zelle' }]
 var st = { data: null, di: 0, sel: '', pay: 0, submitting: false }
 
-function period(t) { var h = Number(t.slice(0, 2)); return h < 12 ? '上午' : h < 18 ? '下午' : '晚上' }
-function friendlyTime(t) { var p = t.split(':').map(Number); return period(t) + ' ' + (p[0] > 12 ? p[0] - 12 : p[0]) + ':' + pad2(p[1]) }
+function payLabel(key) { return key === 'zelle' ? 'Zelle' : t('cash') }
+function period(time) { var h = Number(time.slice(0, 2)); return h < 12 ? t('morning') : h < 18 ? t('afternoon') : t('evening') }
+// 副标题里的时间：中文“下午 2:00”，英文“2:00 PM”
+function friendlyTime(time) {
+  if (LANG === 'en') return fmtTime(time)
+  var p = time.split(':').map(Number)
+  return period(time) + ' ' + (p[0] > 12 ? p[0] - 12 : p[0]) + ':' + pad2(p[1])
+}
+function dayText(day) { return LANG === 'en' ? fmtWeekday(day.weekday) + ', ' + fmtDate(day.date) : fmtDate(day.date) + ' ' + day.weekday }
+function rangeText(time, minutes) { return fmtTime(time) + ' – ' + fmtTime(addMinutes(time, minutes)) }
 
 function load() {
   return api('getSlots', { phone: memory.get('phone') }).then(function (res) {
@@ -21,8 +29,9 @@ function renderAll() {
   var d = st.data, shop = d.shop
   var WD = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
   // 旧版后台没有 openWeekdays，就用第一个营业日的星期
-  var days = d.openWeekdays ? d.openWeekdays.map(function (n) { return WD[n] }) : d.dates.slice(0, 1).map(function (x) { return x.weekday })
-  $('subtitle').textContent = '每' + days.join('、') + ' · ' + friendlyTime(d.startTime) + ' – ' + friendlyTime(d.endTime)
+  var nums = d.openWeekdays || d.dates.slice(0, 1).map(function (x) { return WD.indexOf(x.weekday) })
+  var days = nums.map(function (n) { return LANG === 'en' ? WEEKDAY_EN_LONG[n] : WD[n] })
+  $('subtitle').textContent = t('every', { days: days.join(LANG === 'en' ? ' & ' : '、') }) + ' · ' + friendlyTime(d.startTime) + ' – ' + friendlyTime(d.endTime)
   $('addr').textContent = shop.address
   $('door').textContent = shop.doorNumber
   $('wechat').textContent = shop.wechat
@@ -36,14 +45,18 @@ function renderAll() {
 function renderTickets() {
   var d = st.data, shop = d.shop
   $('tickets').innerHTML = d.myBookings.map(function (b) {
+    var end = addMinutes(b.time, b.minutes || d.slotMinutes)
+    // 大字号的开始时间；英文把 AM/PM 放进后面的小字
+    var big = LANG === 'en' ? fmtTime(b.time).split(' ')[0] : b.time
+    var small = LANG === 'en' ? ' ' + fmtTime(b.time).split(' ')[1] + ' – ' + fmtTime(end) : ' – ' + end
     return '<div class="ticket fade-up">' +
-      '<div class="ticket-top"><div class="ticket-brand"><img class="ticket-logo" src="images/logo-icon.png" alt="">' + esc(shop.name) + '</div><div class="badge">已预约</div></div>' +
-      '<div class="ticket-date">' + dateLabel(b.date) + ' · ' + b.weekday + '</div>' +
-      '<div class="ticket-time">' + b.time + '<span class="ticket-end"> – ' + addMinutes(b.time, b.minutes || d.slotMinutes) + '</span></div>' +
-      '<div class="ticket-name">' + esc(b.name) + ' · ' + (b.payment === 'zelle' ? 'Zelle' : '现金') + '付款</div>' +
+      '<div class="ticket-top"><div class="ticket-brand"><img class="ticket-logo" src="images/logo-icon.png" alt="">' + esc(shop.name) + '</div><div class="badge">' + t('booked') + '</div></div>' +
+      '<div class="ticket-date">' + fmtDate(b.date) + ' · ' + fmtWeekday(b.weekday) + '</div>' +
+      '<div class="ticket-time">' + big + '<span class="ticket-end">' + small + '</span></div>' +
+      '<div class="ticket-name">' + esc(b.name) + ' · ' + t('paidBy', { pay: payLabel(b.payment) }) + '</div>' +
       '<div class="ticket-divider"></div>' +
       '<div class="ticket-addr">' + esc(shop.address) + '</div><div class="ticket-door">' + esc(shop.doorNumber) + '</div>' +
-      '<div class="ticket-actions"><div class="ticket-btn" data-copy="1">复制地址</div><div class="ticket-btn ticket-btn-danger" data-id="' + b.id + '">取消预约</div></div>' +
+      '<div class="ticket-actions"><div class="ticket-btn" data-copy="1">' + t('copyAddr') + '</div><div class="ticket-btn ticket-btn-danger" data-id="' + b.id + '">' + t('cancelBooking') + '</div></div>' +
       '</div>'
   }).join('')
   $('tickets').querySelectorAll('.ticket-btn').forEach(function (el) { press(el, 'ticket-btn-pressed') })
@@ -51,9 +64,9 @@ function renderTickets() {
   $('tickets').querySelectorAll('.ticket-btn-danger').forEach(function (el) {
     el.onclick = function () {
       showModal({
-        title: '取消这个预约？', content: '取消后这个时间会开放给其他人。', confirmText: '取消预约', cancelText: '保留', danger: true,
+        title: t('cancelQ'), content: t('cancelBody'), confirmText: t('cancelBooking'), cancelText: t('keep'), danger: true,
         onConfirm: function () {
-          api('cancel', { id: el.dataset.id, phone: memory.get('phone') }).then(function () { showToast('已取消'); return load() })
+          api('cancel', { id: el.dataset.id, phone: memory.get('phone') }).then(function () { showToast(t('cancelled')); return load() })
             .catch(function (err) { showToast(err.message) })
         }
       })
@@ -61,7 +74,7 @@ function renderTickets() {
   })
   var mine = d.myBookings.length > 0
   $('addrRow').style.display = mine ? 'none' : ''
-  $('contactHeader').textContent = mine ? '联系店主' : '地址与联系方式'
+  $('contactHeader').textContent = mine ? t('contactOwner') : t('contactTitle')
 }
 
 function renderDates() {
@@ -71,7 +84,7 @@ function renderDates() {
   $('dateSeg').className = chips ? 'date-chips' : 'segmented'
   var items = dates.map(function (d, i) {
     var full = d.slots.every(function (s) { return !s.available })
-    return '<div class="' + (chips ? 'date-chip' : 'seg-item') + (i === st.di ? ' seg-on' : '') + '" data-i="' + i + '"><div class="seg-label">' + dateLabel(d.date) + '</div><div class="seg-sub">' + (d.bookedByMe ? '已预约' : full ? '已约满' : d.weekday) + '</div></div>'
+    return '<div class="' + (chips ? 'date-chip' : 'seg-item') + (i === st.di ? ' seg-on' : '') + '" data-i="' + i + '"><div class="seg-label">' + fmtDate(d.date) + '</div><div class="seg-sub">' + (d.bookedByMe ? t('booked') : full ? t('fullShort') : fmtWeekday(d.weekday)) + '</div></div>'
   }).join('')
   $('dateSeg').innerHTML = !dates.length ? ''
     : chips ? items
@@ -89,25 +102,29 @@ function renderDates() {
   })
 }
 
+function emptyBox(title, sub) {
+  return '<div class="empty fade-up"><div class="empty-title">' + title + '</div><div class="empty-sub">' + sub + '</div></div>'
+}
+
 function renderSlots() {
   var day = st.data.dates[st.di], area = $('slotArea')
   if (!day) {
     $('slotNote').textContent = ''
-    area.innerHTML = '<div class="empty fade-up"><div class="empty-title">近期休息</div><div class="empty-sub">暂时没有可以预约的日子，请稍后再来看看</div></div>'
+    area.innerHTML = emptyBox(t('closedTitle'), t('closedSub'))
     return
   }
   var left = day.slots.filter(function (s) { return s.available }).length
   if (day.bookedByMe) {
     $('slotNote').textContent = ''
-    area.innerHTML = '<div class="empty fade-up"><div class="empty-title">这周已经约好了</div><div class="empty-sub">每人每周可预约一次</div></div>'
+    area.innerHTML = emptyBox(t('bookedWeek'), t('onePerWeek'))
     return
   }
   if (!left) {
     $('slotNote').textContent = ''
-    area.innerHTML = '<div class="empty fade-up"><div class="empty-title">这天已约满</div><div class="empty-sub">看看下一周吧</div></div>'
+    area.innerHTML = emptyBox(t('full'), t('nextWeek'))
     return
   }
-  $('slotNote').textContent = '剩 ' + left + ' 个空位 · 每位 ' + st.data.slotMinutes + ' 分钟'
+  $('slotNote').textContent = t('slotNote', { n: left, m: st.data.slotMinutes })
   // 按下午 / 晚上分组
   var groups = []
   day.slots.forEach(function (s, i) {
@@ -118,7 +135,7 @@ function renderSlots() {
   area.innerHTML = groups.map(function (g) {
     return '<div class="period slot-in" style="animation-delay:' + (g.slots[0].i * 25) + 'ms">' + g.label + '</div><div class="slots">' +
       g.slots.map(function (x) {
-        return '<div class="slot slot-in' + (x.s.available ? '' : ' slot-taken') + (x.s.time === st.sel ? ' slot-on' : '') + '" data-t="' + x.s.time + '" style="animation-delay:' + (x.i * 25) + 'ms">' + x.s.time + '</div>'
+        return '<div class="slot slot-in' + (x.s.available ? '' : ' slot-taken') + (x.s.time === st.sel ? ' slot-on' : '') + '" data-t="' + x.s.time + '" style="animation-delay:' + (x.i * 25) + 'ms">' + fmtTime(x.s.time) + '</div>'
       }).join('') + '</div>'
   }).join('')
   area.querySelectorAll('.slot:not(.slot-taken)').forEach(function (el) {
@@ -135,20 +152,20 @@ function updateCta() {
   var day = st.data && st.data.dates[st.di]
   $('cta').classList.toggle('cta-show', !!st.sel && $('sheet').style.display === 'none')
   if (st.sel && day) {
-    $('ctaLabel').textContent = dateLabel(day.date) + ' ' + day.weekday
-    $('ctaValue').textContent = st.sel + ' – ' + addMinutes(st.sel, st.data.slotMinutes)
+    $('ctaLabel').textContent = dayText(day)
+    $('ctaValue').textContent = rangeText(st.sel, st.data.slotMinutes)
   }
 }
 
 function openSheet() {
   var name = $('name').value.trim(), phone = $('phone').value.replace(/\D/g, '')
-  if (!name) { showToast('请先填写客户名称'); $('name').focus(); return }
-  if (phone.length < 10) { showToast('请填写正确的手机号'); $('phone').focus(); return }
+  if (!name) { showToast(t('needName')); $('name').focus(); return }
+  if (phone.length < 10) { showToast(t('needPhone')); $('phone').focus(); return }
   var day = st.data.dates[st.di], shop = st.data.shop
   $('sName').textContent = name
   $('sPhone').textContent = $('phone').value.trim()
-  $('sTime').textContent = dateLabel(day.date) + ' ' + day.weekday + ' ' + st.sel + ' – ' + addMinutes(st.sel, st.data.slotMinutes)
-  $('sPay').textContent = PAYS[st.pay].label
+  $('sTime').textContent = dayText(day) + ' ' + rangeText(st.sel, st.data.slotMinutes)
+  $('sPay').textContent = payLabel(PAYS[st.pay].key)
   $('sAddr').innerHTML = esc(shop.address) + '<br>' + esc(shop.doorNumber)
   $('confirm').style.display = ''; $('done').style.display = 'none'
   $('sheet').style.display = ''
@@ -170,9 +187,9 @@ function submit() {
   api('book', { name: name, phone: phone, payment: PAYS[st.pay].key, date: day.date, time: st.sel }).then(function (res) {
     memory.set('name', name); memory.set('phone', phone); memory.set('payment', PAYS[st.pay].key)
     var b = res.booking, shop = st.data.shop
-    $('dHello').textContent = '到时见，' + b.name
-    $('dTime').textContent = dateLabel(b.date) + ' ' + b.weekday + ' ' + b.time + ' – ' + addMinutes(b.time, st.data.slotMinutes)
-    $('dPay').textContent = PAYS[st.pay].label
+    $('dHello').textContent = t('hello', { name: b.name })
+    $('dTime').textContent = dayText(b) + ' ' + rangeText(b.time, b.minutes || st.data.slotMinutes)
+    $('dPay').textContent = payLabel(PAYS[st.pay].key)
     $('dAddr').innerHTML = esc(shop.address) + '<br>' + esc(shop.doorNumber)
     $('confirm').style.display = 'none'; $('done').style.display = ''
   }).catch(function (err) {
@@ -182,22 +199,22 @@ function submit() {
     setTimeout(load, 500)
   }).then(function () {
     st.submitting = false
-    $('submit').textContent = '确认预约'
+    $('submit').textContent = t('submit')
   })
 }
 
-function copyAddress() { copyText(st.data.shop.address + ', ' + st.data.shop.doorNumber, '地址已复制') }
+function copyAddress() { copyText(st.data.shop.address + ', ' + st.data.shop.doorNumber, t('addrCopied')) }
 
 // 换了设备或清了浏览器数据时，用手机号找回自己的预约
 function findMine() {
   showModal({
-    title: '查找我的预约', content: '输入预约时留的手机号', input: '例如 912-555-0123', inputType: 'tel', inputMode: 'tel', confirmText: '查找',
+    title: t('findTitle'), content: t('findBody'), input: t('phonePh'), inputType: 'tel', inputMode: 'tel', confirmText: t('find'),
     onConfirm: function (v) {
-      if (String(v || '').replace(/\D/g, '').length < 10) return showToast('请填写正确的手机号')
+      if (String(v || '').replace(/\D/g, '').length < 10) return showToast(t('needPhone'))
       memory.set('phone', v.trim())
       $('phone').value = v.trim()
       load().then(function () {
-        showToast(st.data.myBookings.length ? '找到 ' + st.data.myBookings.length + ' 个预约' : '没有找到这个手机号的预约')
+        showToast(st.data.myBookings.length ? t('found', { n: st.data.myBookings.length }) : t('notFound'))
         window.scrollTo({ top: 0, behavior: 'smooth' })
       })
     }
@@ -205,6 +222,11 @@ function findMine() {
 }
 
 // ---------- 绑定事件 ----------
+applyI18n()
+document.title = t('pageTitle')
+$('langBtn').textContent = t('langBtn')
+$('langBtn').onclick = function () { setLang(LANG === 'en' ? 'zh' : 'en') }
+
 $('name').value = memory.get('name')
 $('phone').value = memory.get('phone')
 st.pay = Math.max(0, PAYS.findIndex(function (p) { return p.key === memory.get('payment') }))
@@ -224,8 +246,8 @@ $('zelle').classList.toggle('zelle-show', st.pay === 1)
 
 ;['addrRow', 'wechatRow', 'zelleRow', 'phoneRow'].forEach(function (id) { press($(id), 'row-pressed') })
 $('addrRow').onclick = copyAddress
-$('wechatRow').onclick = function () { copyText(st.data.shop.wechat, '微信号已复制') }
-$('zelleRow').onclick = function () { copyText(st.data.shop.zelle, 'Zelle 账号已复制') }
+$('wechatRow').onclick = function () { copyText(st.data.shop.wechat, t('wechatCopied')) }
+$('zelleRow').onclick = function () { copyText(st.data.shop.zelle, t('zelleCopied')) }
 $('findMine').onclick = findMine
 document.querySelectorAll('.btn-primary').forEach(function (el) { press(el, 'btn-pressed') })
 $('book').onclick = openSheet

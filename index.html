@@ -712,6 +712,14 @@ a { -webkit-tap-highlight-color: transparent; }
 .date-chip.seg-on { background: var(--primary); color: var(--on-primary); }
 .date-chip.seg-on .seg-sub { color: inherit; opacity: .7; }
 
+/* 右上角的中英文切换按钮 */
+.lang-toggle {
+  position: absolute; right: 12px; bottom: 8px; padding: 4px 12px; border-radius: 999px;
+  background: var(--fill); color: var(--label); font-size: 13px; font-weight: 600; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; user-select: none;
+}
+.lang-toggle:active { transform: scale(.94); }
+
 /* 演示模式提示条 */
 .demo-banner {
   position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 30;
@@ -719,7 +727,7 @@ a { -webkit-tap-highlight-color: transparent; }
   background: rgba(28, 37, 65, 0.85); color: #fff; font-size: 12px; white-space: nowrap; pointer-events: none;
 }
 .cta-show ~ .demo-banner { display: none; }
-</style></head><body><div class="nav" id="nav"><div class="nav-title">Sam Barbershop</div></div>
+</style></head><body><div class="nav" id="nav"><div class="nav-title">Sam Barbershop</div><div class="lang-toggle" id="langBtn"></div></div>
 
 <div class="page web-page">
   <div class="hero">
@@ -738,63 +746,63 @@ a { -webkit-tap-highlight-color: transparent; }
   <div id="content" style="display:none">
     <div id="tickets"></div>
 
-    <div class="section-header" id="contactHeader">地址与联系方式</div>
+    <div class="section-header" id="contactHeader" data-i18n="contactTitle"></div>
     <div class="group">
       <div class="row" id="addrRow">
         <div class="icon icon-red"><div class="pin-dot"></div></div>
         <div class="row-main"><div class="row-title" id="addr"></div><div class="row-sub" id="door"></div></div>
-        <div class="row-accessory">复制</div>
+        <div class="row-accessory" data-i18n="copy"></div>
       </div>
       <div class="row" id="wechatRow">
         <div class="icon icon-wechat"><div class="bubble"></div></div>
-        <div class="row-main"><div class="row-sub">微信号</div><div class="row-title" id="wechat"></div></div>
-        <div class="row-accessory">复制</div>
+        <div class="row-main"><div class="row-sub" data-i18n="wechat"></div><div class="row-title" id="wechat"></div></div>
+        <div class="row-accessory" data-i18n="copy"></div>
       </div>
       <a class="row" id="phoneRow" style="color:inherit;text-decoration:none">
         <div class="icon icon-green"><div class="handset"></div></div>
-        <div class="row-main"><div class="row-sub">电话</div><div class="row-title" id="shopPhone"></div></div>
-        <div class="row-accessory">拨打</div>
+        <div class="row-main"><div class="row-sub" data-i18n="phoneLabel"></div><div class="row-title" id="shopPhone"></div></div>
+        <div class="row-accessory" data-i18n="call"></div>
       </a>
     </div>
 
-    <div class="section-header">客户名称</div>
-    <div class="group"><div class="row"><input class="field" id="name" placeholder="填写你的名字" maxlength="30" autocomplete="name"></div></div>
+    <div class="section-header" data-i18n="name"></div>
+    <div class="group"><div class="row"><input class="field" id="name" data-i18n-ph="namePh" maxlength="30" autocomplete="name"></div></div>
 
-    <div class="section-header"><span>手机号</span><span class="section-note">用来确认和取消预约</span></div>
-    <div class="group"><div class="row"><input class="field" id="phone" type="tel" inputmode="tel" placeholder="例如 912-555-0123" autocomplete="tel"></div></div>
+    <div class="section-header"><span data-i18n="phone"></span><span class="section-note" data-i18n="phoneNote"></span></div>
+    <div class="group"><div class="row"><input class="field" id="phone" type="tel" inputmode="tel" data-i18n-ph="phonePh" autocomplete="tel"></div></div>
 
-    <div class="section-header">付款方式</div>
+    <div class="section-header" data-i18n="payment"></div>
     <div class="segmented" id="paySeg">
       <div class="seg-indicator" id="payInd" style="width: calc((100% - 4px) / 2)"></div>
-      <div class="seg-item seg-on" data-p="0"><div class="seg-label seg-label-single">现金</div></div>
+      <div class="seg-item seg-on" data-p="0"><div class="seg-label seg-label-single" data-i18n="cash"></div></div>
       <div class="seg-item" data-p="1"><div class="seg-label seg-label-single">Zelle</div></div>
     </div>
     <div class="zelle" id="zelle">
       <div class="group zelle-inner">
         <div class="row" id="zelleRow">
-          <div class="row-main"><div class="row-sub">理完发后转账到这个 Zelle 账号</div><div class="row-title" id="zelleAcct"></div></div>
-          <div class="row-accessory">复制</div>
+          <div class="row-main"><div class="row-sub" data-i18n="zelleNote"></div><div class="row-title" id="zelleAcct"></div></div>
+          <div class="row-accessory" data-i18n="copy"></div>
         </div>
       </div>
     </div>
 
-    <div class="section-header">日期</div>
+    <div class="section-header" data-i18n="date"></div>
     <div class="segmented" id="dateSeg"></div>
 
-    <div class="section-header"><span>时间</span><span class="section-note" id="slotNote"></span></div>
+    <div class="section-header"><span data-i18n="time"></span><span class="section-note" id="slotNote"></span></div>
     <div id="slotArea"></div>
 
     <div class="footer">
       <div class="footer-brand" id="footerBrand">Sam Barbershop</div>
-      <a class="footer-link" id="findMine" style="text-decoration:none">用手机号查找我的预约</a>
-      <a class="footer-link" id="adminLink" href="admin.html" style="text-decoration:none">店主入口</a>
+      <a class="footer-link" id="findMine" style="text-decoration:none" data-i18n="findMine"></a>
+      <a class="footer-link" id="adminLink" href="admin.html" style="text-decoration:none" data-i18n="owner"></a>
     </div>
   </div>
 </div>
 
 <div class="cta" id="cta">
   <div class="cta-info"><div class="cta-label" id="ctaLabel"></div><div class="cta-value" id="ctaValue"></div></div>
-  <div class="btn-primary" id="book">预约</div>
+  <div class="btn-primary" id="book" data-i18n="book"></div>
 </div>
 
 <div class="sheet-root" id="sheet" style="display:none">
@@ -802,34 +810,35 @@ a { -webkit-tap-highlight-color: transparent; }
   <div class="sheet">
     <div class="grabber"></div>
     <div id="confirm">
-      <div class="sheet-title">确认预约</div>
+      <div class="sheet-title" data-i18n="confirmTitle"></div>
       <div class="summary">
-        <div class="summary-row"><span class="summary-k">客户名称</span><span class="summary-v" id="sName"></span></div>
-        <div class="summary-row"><span class="summary-k">手机号</span><span class="summary-v" id="sPhone"></span></div>
-        <div class="summary-row"><span class="summary-k">时间</span><span class="summary-v" id="sTime"></span></div>
-        <div class="summary-row"><span class="summary-k">付款方式</span><span class="summary-v" id="sPay"></span></div>
-        <div class="summary-row"><span class="summary-k">地址</span><span class="summary-v" id="sAddr"></span></div>
+        <div class="summary-row"><span class="summary-k" data-i18n="name"></span><span class="summary-v" id="sName"></span></div>
+        <div class="summary-row"><span class="summary-k" data-i18n="phone"></span><span class="summary-v" id="sPhone"></span></div>
+        <div class="summary-row"><span class="summary-k" data-i18n="time"></span><span class="summary-v" id="sTime"></span></div>
+        <div class="summary-row"><span class="summary-k" data-i18n="payment"></span><span class="summary-v" id="sPay"></span></div>
+        <div class="summary-row"><span class="summary-k" data-i18n="addr"></span><span class="summary-v" id="sAddr"></span></div>
       </div>
-      <div class="btn-primary sheet-btn" id="submit">确认预约</div>
-      <div class="btn-text" id="later">再想想</div>
+      <div class="btn-primary sheet-btn" id="submit" data-i18n="submit"></div>
+      <div class="btn-text" id="later" data-i18n="later"></div>
     </div>
     <div id="done" style="display:none">
       <div class="success">
         <div class="check-circle"><div class="check"></div></div>
-        <div class="success-title">预约成功</div>
+        <div class="success-title" data-i18n="success"></div>
         <div class="success-sub" id="dHello"></div>
       </div>
       <div class="summary success-summary">
-        <div class="summary-row"><span class="summary-k">时间</span><span class="summary-v" id="dTime"></span></div>
-        <div class="summary-row"><span class="summary-k">付款方式</span><span class="summary-v" id="dPay"></span></div>
-        <div class="summary-row"><span class="summary-k">地址</span><span class="summary-v" id="dAddr"></span></div>
+        <div class="summary-row"><span class="summary-k" data-i18n="time"></span><span class="summary-v" id="dTime"></span></div>
+        <div class="summary-row"><span class="summary-k" data-i18n="payment"></span><span class="summary-v" id="dPay"></span></div>
+        <div class="summary-row"><span class="summary-k" data-i18n="addr"></span><span class="summary-v" id="dAddr"></span></div>
       </div>
-      <div class="btn-primary sheet-btn" id="finish">完成</div>
+      <div class="btn-primary sheet-btn" id="finish" data-i18n="done"></div>
     </div>
   </div>
 </div>
 
 <script src="config.js"></script>
+<script src="i18n.js"></script>
 <script src="core.js"></script>
 <script src="demo-store.js"></script>
 <script src="client.js"></script>

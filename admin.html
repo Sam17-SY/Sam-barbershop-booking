@@ -503,6 +503,14 @@ a { -webkit-tap-highlight-color: transparent; }
 .date-chip.seg-on { background: var(--primary); color: var(--on-primary); }
 .date-chip.seg-on .seg-sub { color: inherit; opacity: .7; }
 
+/* 右上角的中英文切换按钮 */
+.lang-toggle {
+  position: absolute; right: 12px; bottom: 8px; padding: 4px 12px; border-radius: 999px;
+  background: var(--fill); color: var(--label); font-size: 13px; font-weight: 600; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; user-select: none;
+}
+.lang-toggle:active { transform: scale(.94); }
+
 /* 演示模式提示条 */
 .demo-banner {
   position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 30;
@@ -567,6 +575,9 @@ a { -webkit-tap-highlight-color: transparent; }
 </div>
 
 <script src="config.js"></script>
+<!-- 店主后台只用中文 -->
+<script>window.SAM_FORCE_LANG = 'zh'</script>
+<script src="i18n.js"></script>
 <script src="core.js"></script>
 <script src="demo-store.js"></script>
 <script src="client.js"></script>
