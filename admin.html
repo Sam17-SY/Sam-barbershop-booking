@@ -480,6 +480,29 @@ a { -webkit-tap-highlight-color: transparent; }
 .login-btn { margin: 24px 16px 0; }
 .logout { margin-top: 12px; color: var(--danger); }
 
+/* 店主后台：点客人时间可以改时间（虚线下划线提示可点） */
+.when-edit .time { text-decoration: underline dotted var(--tertiary); text-underline-offset: 4px; }
+.when { border-radius: 8px; transition: background-color 200ms; }
+.when-pressed { background: var(--fill); }
+.tag-closed { padding: 2px 8px; border-radius: 6px; background: rgba(255, 59, 48, .12); color: var(--danger); font-size: 13px; font-weight: 600; }
+
+/* 底部菜单：选项多时可以滚动；灰掉的选项 */
+.as-sheet .as-group:first-child { max-height: 64vh; overflow-y: auto; }
+.as-muted { color: var(--tertiary) !important; }
+
+/* 多选清单（每周营业日） */
+.check-list { padding: 4px 0 8px; }
+.check-row { display: flex; justify-content: space-between; align-items: center; height: 50px; padding: 0 24px; font-size: 17px; border-bottom: .5px solid var(--separator); cursor: pointer; }
+.check-mark { color: var(--link); font-weight: 700; opacity: 0; }
+.check-on .check-mark { opacity: 1; }
+
+/* 顾客页：营业日多于 4 天时，日期改成可以横向滑动的小卡片 */
+.date-chips { display: flex; gap: 8px; margin: 0 16px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.date-chips::-webkit-scrollbar { display: none; }
+.date-chip { flex: 0 0 auto; min-width: 76px; padding: 8px 10px; border-radius: 12px; background: var(--fill); text-align: center; cursor: pointer; transition: background-color 200ms, transform 200ms; }
+.date-chip.seg-on { background: var(--primary); color: var(--on-primary); }
+.date-chip.seg-on .seg-sub { color: inherit; opacity: .7; }
+
 /* 演示模式提示条 */
 .demo-banner {
   position: fixed; left: 50%; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 30;
@@ -525,13 +548,19 @@ a { -webkit-tap-highlight-color: transparent; }
   <div id="list"></div>
 
   <div id="settings">
+    <!-- 接下来的营业日：点某一天可以临时休息、锁住时段 -->
+    <div class="section-header">接下来的营业日</div>
+    <div class="group" id="schedule"></div>
+    <div class="footnote">点某一天：临时休息这一天，或者锁住某个时段不让顾客约。</div>
+
     <div class="section-header">营业设置</div>
     <div class="group">
       <div class="row" id="weekdayRow"><div class="row-label">每周营业日</div><div class="row-value" id="weekdayVal"></div><div class="chevron"></div></div>
       <div class="row row-sep" id="startRow"><div class="row-label">几点开始</div><div class="row-value" id="startVal"></div><div class="chevron"></div></div>
       <div class="row row-sep" id="endRow"><div class="row-label">几点结束</div><div class="row-value" id="endVal"></div><div class="chevron"></div></div>
+      <div class="row row-sep" id="lenRow"><div class="row-label">每位客人时长</div><div class="row-value" id="lenVal"></div><div class="chevron"></div></div>
     </div>
-    <div class="footnote">最后一位客人在结束时间前理完。改了之后顾客只能约新的日子和时间，已有的预约不受影响。</div>
+    <div class="footnote">最后一位客人在结束时间前理完。改了之后顾客只能约新的日子和时间，已有的预约不受影响。点客人左边的时间可以帮他改时间。</div>
     <div class="btn-text logout" id="logout">退出登录</div>
   </div>
   <div style="height: 40px"></div>

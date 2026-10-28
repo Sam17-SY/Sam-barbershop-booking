@@ -1,6 +1,7 @@
 // 网页版共用：调用后台、提示框、iOS 风格的弹窗 / 底部菜单 / 滚轮
 var $ = function (id) { return document.getElementById(id) }
-var SAM_DEMO = !window.SAM_API_URL
+// 网址后面加 ?demo=1 也会进入演示模式（不碰正式数据，方便试新功能）
+var SAM_DEMO = !window.SAM_API_URL || /[?&]demo=1\b/.test(location.search)
 var samDemoBackend = SAM_DEMO ? createSamBackend(SAM_DEFAULT_CONFIG, createDemoStore(SAM_DEFAULT_CONFIG)) : null
 
 // 调用后台：正式模式发到 Google Apps Script；演示模式直接在浏览器里跑同一份规则
@@ -117,7 +118,7 @@ function showActionSheet(o) {
   var close = function () { root.classList.remove('as-open'); setTimeout(function () { root.remove() }, 400) }
   o.items.forEach(function (t, i) {
     var btn = document.createElement('div')
-    btn.className = 'as-btn' + (o.dangerIndex === i ? ' as-danger' : '')
+    btn.className = 'as-btn' + (o.dangerIndex === i ? ' as-danger' : '') + (o.mutedIndexes && o.mutedIndexes.indexOf(i) >= 0 ? ' as-muted' : '')
     btn.textContent = t
     btn.onclick = function () { close(); o.onPick(i) }
     group.appendChild(btn)
@@ -126,6 +127,34 @@ function showActionSheet(o) {
   requestAnimationFrame(function () { root.classList.add('as-open') })
   root.querySelector('.as-mask').onclick = close
   root.querySelector('.as-cancel').onclick = close
+}
+
+// 多选清单（底部弹出，可勾选多项，点“确定”保存）
+function showChecklist(o) {
+  var picked = o.selected.slice()
+  var root = document.createElement('div')
+  root.className = 'wheel-root'
+  root.innerHTML = '<div class="wheel-mask"></div><div class="wheel-sheet"><div class="wheel-bar"><span class="wheel-cancel">取消</span><span class="wheel-title"></span><span class="wheel-ok">确定</span></div><div class="check-list"></div></div>'
+  root.querySelector('.wheel-title').textContent = o.title
+  var list = root.querySelector('.check-list')
+  o.items.forEach(function (t, i) {
+    var row = document.createElement('div')
+    row.className = 'check-row' + (picked.indexOf(i) >= 0 ? ' check-on' : '')
+    row.innerHTML = '<span></span><span class="check-mark">✓</span>'
+    row.firstChild.textContent = t
+    row.onclick = function () {
+      var k = picked.indexOf(i)
+      if (k >= 0) picked.splice(k, 1); else picked.push(i)
+      row.classList.toggle('check-on', k < 0)
+    }
+    list.appendChild(row)
+  })
+  document.body.appendChild(root)
+  requestAnimationFrame(function () { root.classList.add('wheel-open') })
+  var close = function () { root.classList.remove('wheel-open'); setTimeout(function () { root.remove() }, 450) }
+  root.querySelector('.wheel-mask').onclick = close
+  root.querySelector('.wheel-cancel').onclick = close
+  root.querySelector('.wheel-ok').onclick = function () { close(); o.onConfirm(picked.sort()) }
 }
 
 // 滚轮选择器（模拟 iPhone 的滚轮）。按“确定”时读取滚轮当前停的位置

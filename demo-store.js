@@ -22,13 +22,13 @@ function createDemoStore(cfg) {
   function seed() {
     var today = now().date
     var d = new Date(today + 'T00:00:00Z')
-    var toNext = (cfg.openWeekday - d.getUTCDay() + 7) % 7
+    var toNext = (cfg.openWeekdays[0] - d.getUTCDay() + 7) % 7
     var day = function (offset) {
       var x = new Date(d); x.setUTCDate(x.getUTCDate() + toNext + offset); return x.toISOString().slice(0, 10)
     }
     var mk = function (date, time, name, phone, payment, tip) {
       return { id: date + '_' + time.replace(':', '') + '_demo', date: date, time: time, name: name, phone: phone, payment: payment,
-        price: cfg.price, tip: tip, status: 'booked', createdAt: '', cancelledAt: '' }
+        price: cfg.price, tip: tip, status: 'booked', createdAt: '', cancelledAt: '', minutes: cfg.slotMinutes }
     }
     return {
       settings: {},

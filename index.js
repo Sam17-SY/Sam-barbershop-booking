@@ -19,8 +19,10 @@ function load() {
 
 function renderAll() {
   var d = st.data, shop = d.shop
-  var first = d.dates[0]
-  $('subtitle').textContent = first ? '每' + first.weekday + ' · ' + friendlyTime(d.startTime) + ' – ' + friendlyTime(d.endTime) : ''
+  var WD = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  // 旧版后台没有 openWeekdays，就用第一个营业日的星期
+  var days = d.openWeekdays ? d.openWeekdays.map(function (n) { return WD[n] }) : d.dates.slice(0, 1).map(function (x) { return x.weekday })
+  $('subtitle').textContent = '每' + days.join('、') + ' · ' + friendlyTime(d.startTime) + ' – ' + friendlyTime(d.endTime)
   $('addr').textContent = shop.address
   $('door').textContent = shop.doorNumber
   $('wechat').textContent = shop.wechat
@@ -37,7 +39,7 @@ function renderTickets() {
     return '<div class="ticket fade-up">' +
       '<div class="ticket-top"><div class="ticket-brand"><img class="ticket-logo" src="images/logo-icon.png" alt="">' + esc(shop.name) + '</div><div class="badge">已预约</div></div>' +
       '<div class="ticket-date">' + dateLabel(b.date) + ' · ' + b.weekday + '</div>' +
-      '<div class="ticket-time">' + b.time + '<span class="ticket-end"> – ' + addMinutes(b.time, d.slotMinutes) + '</span></div>' +
+      '<div class="ticket-time">' + b.time + '<span class="ticket-end"> – ' + addMinutes(b.time, b.minutes || d.slotMinutes) + '</span></div>' +
       '<div class="ticket-name">' + esc(b.name) + ' · ' + (b.payment === 'zelle' ? 'Zelle' : '现金') + '付款</div>' +
       '<div class="ticket-divider"></div>' +
       '<div class="ticket-addr">' + esc(shop.address) + '</div><div class="ticket-door">' + esc(shop.doorNumber) + '</div>' +
@@ -64,19 +66,24 @@ function renderTickets() {
 
 function renderDates() {
   var dates = st.data.dates
-  $('dateSeg').innerHTML = '<div class="seg-indicator" id="ind" style="width: calc((100% - 4px) / ' + dates.length + '); transform: translateX(' + st.di * 100 + '%)"></div>' +
-    dates.map(function (d, i) {
-      var full = d.slots.every(function (s) { return !s.available })
-      return '<div class="seg-item' + (i === st.di ? ' seg-on' : '') + '" data-i="' + i + '"><div class="seg-label">' + dateLabel(d.date) + '</div><div class="seg-sub">' + (d.bookedByMe ? '已预约' : full ? '已约满' : d.weekday) + '</div></div>'
-    }).join('')
-  $('dateSeg').querySelectorAll('.seg-item').forEach(function (el) {
+  // 4 天以内用分段控件（滑块会滑动）；更多天时改成可以横向滑动的小卡片
+  var chips = dates.length > 4
+  $('dateSeg').className = chips ? 'date-chips' : 'segmented'
+  var items = dates.map(function (d, i) {
+    var full = d.slots.every(function (s) { return !s.available })
+    return '<div class="' + (chips ? 'date-chip' : 'seg-item') + (i === st.di ? ' seg-on' : '') + '" data-i="' + i + '"><div class="seg-label">' + dateLabel(d.date) + '</div><div class="seg-sub">' + (d.bookedByMe ? '已预约' : full ? '已约满' : d.weekday) + '</div></div>'
+  }).join('')
+  $('dateSeg').innerHTML = !dates.length ? ''
+    : chips ? items
+    : '<div class="seg-indicator" id="ind" style="width: calc((100% - 4px) / ' + dates.length + '); transform: translateX(' + st.di * 100 + '%)"></div>' + items
+  $('dateSeg').querySelectorAll('[data-i]').forEach(function (el) {
     press(el, 'seg-pressed')
     el.onclick = function () {
       var i = Number(el.dataset.i)
       if (i === st.di) return
       st.di = i; st.sel = ''
-      $('ind').style.transform = 'translateX(' + i * 100 + '%)'
-      $('dateSeg').querySelectorAll('.seg-item').forEach(function (s, j) { s.classList.toggle('seg-on', j === i) })
+      if ($('ind')) $('ind').style.transform = 'translateX(' + i * 100 + '%)'
+      $('dateSeg').querySelectorAll('[data-i]').forEach(function (s, j) { s.classList.toggle('seg-on', j === i) })
       renderSlots(); updateCta()
     }
   })
@@ -84,7 +91,11 @@ function renderDates() {
 
 function renderSlots() {
   var day = st.data.dates[st.di], area = $('slotArea')
-  if (!day) { area.innerHTML = ''; return }
+  if (!day) {
+    $('slotNote').textContent = ''
+    area.innerHTML = '<div class="empty fade-up"><div class="empty-title">近期休息</div><div class="empty-sub">暂时没有可以预约的日子，请稍后再来看看</div></div>'
+    return
+  }
   var left = day.slots.filter(function (s) { return s.available }).length
   if (day.bookedByMe) {
     $('slotNote').textContent = ''
@@ -230,5 +241,7 @@ $('finish').onclick = function () {
 // 大标题滚出去后，顶部导航栏变成毛玻璃并显示小标题
 new IntersectionObserver(function (e) { $('nav').classList.toggle('nav-collapsed', !e[0].isIntersecting) }, { rootMargin: '-44px 0px 0px 0px' }).observe($('title'))
 
+// 演示模式下，店主入口也带上 ?demo=1
+if (SAM_DEMO && location.search) $('adminLink').href = 'admin.html' + location.search
 showDemoBanner()
 load()

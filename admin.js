@@ -27,6 +27,7 @@ function showLogin(msg) {
 function load() {
   $('list').classList.add('dim')
   return api('adminList', { password: ad.pw, scope: ad.scope === 0 ? 'upcoming' : 'past' }).then(function (res) {
+    if (!res.schedule) throw new Error('Google 后台还是旧版本，请按 DEPLOY.md 更新后台代码并部署新版本')
     ad.data = res
     render()
   }).catch(function (err) {
@@ -65,7 +66,7 @@ function render() {
         ' · Zelle ' + g.items.filter(function (b) { return b.payment === 'zelle' }).length + ' · <span class="day-sum">' + money(sum(g.items, amt)) + '</span></span></div>' +
         '<div class="group">' + g.items.map(function (b) {
           return '<div class="row customer">' +
-            '<div class="when"><div class="time">' + b.time + '</div><div class="end">' + addMinutes(b.time, d.slotMinutes) + '</div></div>' +
+            '<div class="when' + (ad.scope === 0 ? ' when-edit' : '') + '" data-id="' + b.id + '"><div class="time">' + b.time + '</div><div class="end">' + addMinutes(b.time, b.minutes) + '</div></div>' +
             '<a class="who" href="tel:+' + b.phone + '" style="color:inherit;text-decoration:none"><div class="who-col"><div class="who-line"><div class="name">' + esc(b.name) + '</div><div class="pay pay-' + b.payment + '">' + PAY[b.payment] + '</div></div><div class="who-phone">' + prettyPhone(b.phone) + '</div></div></a>' +
             '<div class="amount" data-id="' + b.id + '"><div class="amount-num">' + money(amt(b)) + '</div>' + (b.tip ? '<div class="amount-tip">小费 ' + money(b.tip) + '</div>' : '<div class="amount-add">+ 小费</div>') + '</div>' +
             (ad.scope === 0 ? '<div class="del" data-id="' + b.id + '">取消</div>' : '') +
@@ -91,11 +92,105 @@ function render() {
     }
   })
 
-  // 营业设置（只在“即将到来”里显示）
+  // 点客人左边的时间：帮他改时间
+  $('list').querySelectorAll('.when-edit').forEach(function (el) {
+    press(el, 'when-pressed')
+    el.onclick = function () { moveBooking(byId(el.dataset.id)) }
+  })
+
+  // 营业设置和“接下来的营业日”（只在“即将到来”里显示）
   $('settings').style.display = ad.scope === 0 ? '' : 'none'
-  $('weekdayVal').textContent = WEEKDAYS[d.settings.openWeekday]
+  $('weekdayVal').textContent = d.settings.openWeekdays.map(function (n) { return WEEKDAYS[n] }).join('、')
   $('startVal').textContent = d.settings.startTime
   $('endVal').textContent = d.settings.endTime
+  $('lenVal').textContent = d.settings.slotMinutes + ' 分钟'
+  renderSchedule()
+}
+
+function renderSchedule() {
+  var days = ad.data.schedule
+  $('schedule').innerHTML = !days.length
+    ? '<div class="row"><div class="row-label" style="color:var(--secondary)">接下来两周没有营业日</div></div>'
+    : days.map(function (day, i) {
+      var info = day.closed ? '<span class="tag-closed">休息</span>'
+        : (day.count ? day.count + ' 位预约' : '还没有预约') + (day.blocked.length ? ' · 锁住 ' + day.blocked.length + ' 个时段' : '')
+      return '<div class="row' + (i ? ' row-sep' : '') + '" data-i="' + i + '"><div class="row-label">' + dateLabel(day.date) + ' ' + day.weekday + '</div><div class="row-value">' + info + '</div><div class="chevron"></div></div>'
+    }).join('')
+  $('schedule').querySelectorAll('.row[data-i]').forEach(function (el) {
+    press(el, 'row-pressed')
+    el.onclick = function () { dayMenu(days[Number(el.dataset.i)]) }
+  })
+}
+
+// 某一天的菜单：临时休息 / 恢复营业、锁住或解锁时段
+function dayMenu(day) {
+  var title = dateLabel(day.date) + ' ' + day.weekday
+  var items = day.closed ? ['恢复营业'] : ['这天休息', '锁住 / 解锁时段']
+  showActionSheet({
+    title: title + (day.closed ? '（休息中）' : ''), items: items, dangerIndex: day.closed ? -1 : 0,
+    onPick: function (i) {
+      if (day.closed) return setClosed(day, false)
+      if (i === 0) {
+        showModal({
+          title: title + ' 休息？',
+          content: day.count ? '这天已经有 ' + day.count + ' 位客人预约，他们不会被自动取消，记得联系他们改时间或在列表里取消。' : '顾客将约不了这一天。',
+          confirmText: '这天休息', danger: true, onConfirm: function () { setClosed(day, true) }
+        })
+      } else lockMenu(day)
+    }
+  })
+}
+
+function setClosed(day, closed) {
+  api('setDayClosed', { password: ad.pw, date: day.date, closed: closed }).then(function () {
+    showToast(closed ? dateLabel(day.date) + ' 已设为休息' : dateLabel(day.date) + ' 恢复营业'); load()
+  }).catch(function (err) { showToast(err.message) })
+}
+
+// 锁住 / 解锁时段：列出这一天所有时段，点一下切换
+function lockMenu(day) {
+  api('adminSlots', { password: ad.pw, date: day.date }).then(function (res) {
+    var labels = { free: '可约', taken: '已有预约', blocked: '🔒 已锁住', past: '已过' }
+    var items = res.slots.map(function (s) { return s.time + '　' + labels[s.state] })
+    var muted = res.slots.map(function (s, i) { return s.state === 'taken' || s.state === 'past' ? i : -1 }).filter(function (i) { return i >= 0 })
+    showActionSheet({
+      title: dateLabel(day.date) + ' · 点时段锁住或解锁', items: items, mutedIndexes: muted,
+      onPick: function (i) {
+        var s = res.slots[i]
+        if (s.state === 'taken') return showToast('这个时段已经有预约了')
+        if (s.state === 'past') return showToast('这个时间已经过了')
+        api('toggleBlock', { password: ad.pw, date: day.date, time: s.time }).then(function (r) {
+          showToast(r.locked ? s.time + ' 已锁住' : s.time + ' 已解锁'); load()
+        }).catch(function (err) { showToast(err.message) })
+      }
+    })
+  }).catch(function (err) { showToast(err.message) })
+}
+
+// 帮客人改时间：先选日期，再选这天还空着的时段
+function moveBooking(b) {
+  var days = ad.data.schedule.filter(function (d) { return !d.closed })
+  if (!days.length) return showToast('接下来没有营业日')
+  showActionSheet({
+    title: '把 ' + b.name + ' 改到哪一天？（现在 ' + dateLabel(b.date) + ' ' + b.time + '）',
+    items: days.map(function (d) { return dateLabel(d.date) + ' ' + d.weekday }),
+    onPick: function (i) {
+      var day = days[i]
+      api('adminSlots', { password: ad.pw, date: day.date, exceptId: b.id }).then(function (res) {
+        var free = res.slots.filter(function (s) { return s.state === 'free' && !(day.date === b.date && s.time === b.time) })
+        if (!free.length) return showToast('这天没有空的时段了')
+        showActionSheet({
+          title: dateLabel(day.date) + ' ' + day.weekday + ' 还空着的时段', items: free.map(function (s) { return s.time }),
+          onPick: function (j) {
+            var t = free[j].time
+            api('adminMove', { password: ad.pw, id: b.id, date: day.date, time: t }).then(function () {
+              showToast('已改到 ' + dateLabel(day.date) + ' ' + t + '，记得通知 ' + b.name); load()
+            }).catch(function (err) { showToast(err.message) })
+          }
+        })
+      }).catch(function (err) { showToast(err.message) })
+    }
+  })
 }
 
 function editTip(b) {
@@ -153,11 +248,23 @@ document.querySelectorAll('.seg-item[data-s]').forEach(function (el) {
     load()
   }
 })
-;['weekdayRow', 'startRow', 'endRow'].forEach(function (id) { press($(id), 'row-pressed') })
+;['weekdayRow', 'startRow', 'endRow', 'lenRow'].forEach(function (id) { press($(id), 'row-pressed') })
+// 每周营业日：可以多选
 $('weekdayRow').onclick = function () {
-  openWheel({
-    title: '每周营业日', columns: [{ items: WEEKDAYS, index: ad.data.settings.openWeekday }],
-    onConfirm: function (sel) { saveSettings({ openWeekday: sel[0] }, '营业日已改为' + WEEKDAYS[sel[0]]) }
+  showChecklist({
+    title: '每周营业日（可多选）', items: WEEKDAYS, selected: ad.data.settings.openWeekdays,
+    onConfirm: function (days) {
+      if (!days.length) return showToast('至少要选一天营业')
+      saveSettings({ openWeekdays: days }, '营业日：' + days.map(function (n) { return WEEKDAYS[n] }).join('、'))
+    }
+  })
+}
+// 每位客人时长
+$('lenRow').onclick = function () {
+  var opts = ad.data.slotOptions
+  showActionSheet({
+    title: '每位客人多长时间？（只影响之后的新预约）', items: opts.map(function (n) { return n + ' 分钟' + (n === ad.data.settings.slotMinutes ? '（现在）' : '') }),
+    onPick: function (i) { saveSettings({ slotMinutes: opts[i] }, '每位改为 ' + opts[i] + ' 分钟') }
   })
 }
 $('startRow').onclick = function () { openTimeWheel('几点开始', ad.data.settings.startTime, 'startTime', '开始') }
@@ -171,6 +278,7 @@ $('loginBtn').onclick = function () {
 $('pw').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('loginBtn').click() })
 $('logout').onclick = function () { memory.del('admin-pw'); ad.pw = ''; $('pw').value = ''; showLogin('已退出') }
 
+if (SAM_DEMO && location.search) document.querySelector('.native-back').href = 'index.html' + location.search
 if (SAM_DEMO) $('pwHint').textContent = '演示模式的密码是 1234。正式启用后，密码会在部署后台时发到你的 Gmail。'
 showDemoBanner()
 if (ad.pw) login(ad.pw).catch(function () { memory.del('admin-pw'); showLogin() })
