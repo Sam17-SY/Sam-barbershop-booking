@@ -67,7 +67,7 @@ function render() {
         '<div class="group">' + g.items.map(function (b) {
           return '<div class="row customer">' +
             '<div class="when' + (ad.scope === 0 ? ' when-edit' : '') + '" data-id="' + b.id + '"><div class="time">' + b.time + '</div><div class="end">' + addMinutes(b.time, b.minutes) + '</div></div>' +
-            '<a class="who" href="tel:+' + b.phone + '" style="color:inherit;text-decoration:none"><div class="who-col"><div class="who-line"><div class="name">' + esc(b.name) + '</div><div class="pay pay-' + b.payment + '">' + PAY[b.payment] + '</div></div><div class="who-phone">' + prettyPhone(b.phone) + (b.email ? ' · ' + esc(b.email) : '') + '</div></div></a>' +
+            '<a class="who" href="tel:' + telOf(b.phone) + '" style="color:inherit;text-decoration:none"><div class="who-col"><div class="who-line"><div class="name">' + esc(b.name) + '</div><div class="pay pay-' + b.payment + '">' + PAY[b.payment] + '</div></div><div class="who-phone">' + prettyPhone(b.phone) + (b.email ? ' · ' + esc(b.email) : '') + '</div></div></a>' +
             '<div class="amount" data-id="' + b.id + '"><div class="amount-num">' + money(amt(b)) + '</div>' + (b.tip ? '<div class="amount-tip">小费 ' + money(b.tip) + '</div>' : '<div class="amount-add">+ 小费</div>') + '</div>' +
             (ad.scope === 0 ? '<div class="del" data-id="' + b.id + '">取消</div>' : '') +
             '</div>'
@@ -215,7 +215,7 @@ function offerSms(b, title, emailed, text) {
     title: title,
     content: (emailed ? '已经自动发邮件通知了 ' + b.name + '。' : b.name + ' 没有留邮箱，收不到自动通知。') + '要再发一条短信吗？内容已经写好，你只需要按发送。',
     confirmText: '发短信', cancelText: '不用了',
-    onConfirm: function () { location.href = 'sms:+' + b.phone + '?&body=' + encodeURIComponent(text) }
+    onConfirm: function () { location.href = 'sms:' + telOf(b.phone) + '?&body=' + encodeURIComponent(text) }
   })
 }
 

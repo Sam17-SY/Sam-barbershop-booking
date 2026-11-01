@@ -42,10 +42,13 @@ function dateLabel(date) { var p = date.split('-').map(Number); return p[1] + '�
 function money(n) { return '$' + (n % 1 ? n.toFixed(2) : n) }
 function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] }) }
 function prettyPhone(d) {
-  d = String(d || '')
-  if (d.length === 11 && d[0] === '1') return '+1 ' + d.slice(1, 4) + '-' + d.slice(4, 7) + '-' + d.slice(7)
+  d = String(d || '').replace(/\D/g, '')
+  if (d.length === 11 && d[0] === '1') d = d.slice(1)
+  if (d.length === 10) return d.slice(0, 3) + '-' + d.slice(3, 6) + '-' + d.slice(6)
   return '+' + d
 }
+// 拨打 / 发短信用的号码：美国号码补上 +1
+function telOf(d) { d = String(d || '').replace(/\D/g, ''); return '+' + (d.length === 10 ? '1' + d : d) }
 
 // 按下时缩小，模拟小程序的 hover-class
 function press(el, cls) {
